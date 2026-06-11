@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ground.name }} · The 92{% endblock %}
+
+{% block content %}
+  <section class="hero-band ground-hero">
+    <div class="page-shell app-grid">
+      <div class="ground-main-col stack-lg">
+        <div class="stack">
+          <p class="eyebrow">Grounds / {{ ground.team.get_league_level_display }}</p>
+          <h1 class="hero-title">{{ ground.name }}</h1>
+          <p class="hero-copy">{{ ground.team.name }} · {{ ground.town_or_city }}{% if ground.opened_year %} · Opened {{ ground.opened_year }}{% endif %}</p>
+        </div>
+        <div class="actions-row">
+          <a class="button button-claim" href="#">Claim ground</a>
+          <a class="button button-secondary" href="#">Add historic visit</a>
+        </div>
+      </div>
+      <aside class="ground-side-col site-card-raised stack" style="padding: var(--space-6);">
+        <div class="pitch-surface" style="min-height: 14rem;"></div>
+        <div>
+          <p class="meta">Next fixture</p>
+          <h2>{{ ground.team.name }} matchday</h2>
+          <p class="text-muted">Check-in opens near kick-off when fixtures are connected.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="page-shell section-block stack-lg">
+    <div class="stats-grid">
+      <article class="ground-stat site-card">
+        <span class="stat-label">Capacity</span>
+        <strong class="stat-value">{{ ground.capacity|default:"TBC" }}</strong>
+      </article>
+      <article class="ground-stat site-card">
+        <span class="stat-label">Opened</span>
+        <strong class="stat-value">{{ ground.opened_year|default:"TBC" }}</strong>
+      </article>
+      <article class="ground-stat site-card">
+        <span class="stat-label">Away allocation</span>
+        <strong class="stat-value">{{ ground.away_allocation|default:"TBC" }}</strong>
+      </article>
+      <article class="ground-stat site-card">
+        <span class="stat-label">Visit status</span>
+        <strong class="stat-value">Open</strong>
+      </article>
+    </div>
+
+    <div class="app-grid">
+      <article class="site-card stack-lg ground-main-col" style="padding: var(--space-6);">
+        <h2>Address and essentials</h2>
+        <div class="info-row">
+          <span class="info-dot"></span>
+          <div>
+            <h3>Address</h3>
+            <p class="text-muted">{{ ground.address }}{% if ground.postcode %}, {{ ground.postcode }}{% endif %}</p>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-dot" style="background: var(--color-blue);"></span>
+          <div>
+            <h3>Transport</h3>
+            <p class="text-muted">{{ ground.transport_notes|default:"Transport notes will be added as the grounds database grows." }}</p>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-dot" style="background: var(--color-gold);"></span>
+          <div>
+            <h3>First visit tip</h3>
+            <p class="text-muted">{{ ground.first_visit_tip|default:"Add a practical first-visit tip for this ground." }}</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="site-card stack-lg ground-side-col" style="padding: var(--space-6);">
+        <h2>Away fans guide</h2>
+        <div class="info-row">
+          <span class="info-dot" style="background: var(--color-navy);"></span>
+          <div>
+            <h3>Where to park</h3>
+            <p class="text-muted">{{ ground.parking_notes|default:"Parking guidance will be added." }}</p>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-dot" style="background: var(--color-red);"></span>
+          <div>
+            <h3>Where to drink</h3>
+            <p class="text-muted">{{ ground.drinking_notes|default:"Pub and drinking notes will be added." }}</p>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-dot"></span>
+          <div>
+            <h3>Away entrance</h3>
+            <p class="text-muted">{{ ground.away_entrance|default:"Away entrance guidance will be added." }}</p>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+{% endblock %}

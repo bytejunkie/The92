@@ -1,0 +1,33 @@
+[project]
+name = "the92"
+version = "0.1.0"
+description = "A social football ground collecting site for tracking visits across The 92."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "cryptography>=48.0.0",
+    "django>=5.2",
+    "django-allauth[google]>=65.18.0",
+    "pillow>=11.0",
+    "pyjwt>=2.13.0",
+    "requests>=2.34.2",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*.py" = ["E501"]

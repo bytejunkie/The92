@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Grounds · The 92{% endblock %}
+
+{% block content %}
+  <section class="page-shell section-block stack-lg">
+    <div class="stack">
+      <p class="eyebrow">Grounds</p>
+      <h1 class="section-title">Start with the grounds database.</h1>
+      <p class="text-muted">The MVP stores each ground with a team, capacity, opened year, imagery hooks, and away-day information.</p>
+    </div>
+    <div class="component-grid">
+      {% for ground in grounds %}
+        <a class="ground-card site-card" href="{{ ground.get_absolute_url }}">
+          <div class="ground-card__pitch pitch-surface"></div>
+          <div>
+            <h2>{{ ground.name }}</h2>
+            <p class="meta">{{ ground.team.name }} · {{ ground.town_or_city }}</p>
+          </div>
+          <div class="actions-row">
+            {% if ground.capacity %}
+              <span class="pill" style="background: var(--color-surface-muted);">{{ ground.capacity }} capacity</span>
+            {% endif %}
+            {% if ground.opened_year %}
+              <span class="pill" style="background: var(--color-surface-muted);">Opened {{ ground.opened_year }}</span>
+            {% endif %}
+          </div>
+        </a>
+      {% empty %}
+        <article class="site-card stack" style="padding: var(--space-6);">
+          <h2>No grounds yet</h2>
+          <p class="text-muted">Run <code>uv run python manage.py seed_mvp</code> to add starter data.</p>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

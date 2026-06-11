@@ -1,0 +1,39 @@
+{% load static %}
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}The 92{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'theme/css/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'theme/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'theme/css/site.css' %}">
+  </head>
+  <body class="site-body">
+    <header class="site-header page-shell">
+      <nav class="site-nav site-card" aria-label="Main navigation">
+        <a class="brand" href="{% url 'grounds:home' %}">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>The 92</span>
+        </a>
+        <div class="nav-links">
+          <a href="{% url 'grounds:list' %}">Grounds</a>
+          <a href="#">Feed</a>
+          <a href="#">Map</a>
+          <a href="#">Profile</a>
+        </div>
+        <div class="nav-actions">
+          {% if user.is_authenticated %}
+            <span class="pill" style="background: var(--color-surface-muted);">{{ user.username }}</span>
+          {% else %}
+            <a class="button button-secondary" href="{% url 'login' %}">Log in</a>
+            <a class="button button-primary" href="{% url 'accounts:register' %}">Join</a>
+          {% endif %}
+        </div>
+      </nav>
+    </header>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

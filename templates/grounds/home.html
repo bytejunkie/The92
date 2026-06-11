@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}The 92 · Track every ground{% endblock %}
+
+{% block content %}
+  <section class="hero-band">
+    <div class="page-shell app-grid">
+      <div class="hero-copy-col stack-lg">
+        <div class="stack">
+          <p class="eyebrow">Football grounds, friends, matchdays</p>
+          <h1 class="hero-title">Track every ground in the 92.</h1>
+          <p class="hero-copy">Build your lifetime list, check in from the turnstiles on matchday, and follow the away days your mates are ticking off across the English leagues.</p>
+        </div>
+        <div class="actions-row">
+          {% if user.is_authenticated %}
+            <a class="button button-primary" href="{% url 'grounds:list' %}">Start collecting</a>
+          {% else %}
+            <a class="button button-primary" href="{% url 'accounts:register' %}">Start my 92</a>
+            <a class="button button-secondary" href="{% url 'grounds:list' %}">Explore grounds</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <aside class="hero-preview-col hero-panel site-card-raised stack-lg">
+        <div class="actions-row" style="justify-content: space-between;">
+          <h2>Your 92</h2>
+          <span class="pill" style="background: var(--color-pitch); color: #fff;">{{ visited_count }} / {{ total_count }}</span>
+        </div>
+        <div class="hero-preview-grid">
+          <div class="site-card stack" style="padding: var(--space-4);">
+            <span class="stat-label">Grounds visited</span>
+            <strong class="stat-value">{{ visited_count }} <span class="meta">of {{ total_count }}</span></strong>
+            <div class="progress-dots" aria-label="{{ visited_count }} of {{ total_count }} grounds visited">
+              {% for dot in "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" %}
+                <span class="progress-dot {% if forloop.counter <= visited_count %}is-active{% endif %}"></span>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="site-card stack" style="padding: var(--space-4);">
+            <div class="pitch-surface" style="min-height: 6rem;"></div>
+            <div>
+              <h3>At Elland Road?</h3>
+              <p class="meta">Matchday window open until 18:30</p>
+            </div>
+            <a class="button button-claim" href="{% url 'grounds:list' %}">Claim visit</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="page-shell section-block stack-lg">
+    <div class="stack">
+      <h2 class="section-title">A social ground-hopping record</h2>
+      <p class="text-muted">The MVP starts with users, favourite teams, and grounds. The styling is already shaped around the Figma direction.</p>
+    </div>
+    <div class="app-grid">
+      <article class="site-card stack span-3" style="padding: var(--space-6);">
+        <div class="activity-row">
+          <span class="avatar"></span>
+          <div>
+            <h3>{% if user.is_authenticated %}{{ user.username }}{% else %}Your profile{% endif %}</h3>
+            <p class="meta">{{ visited_count }} grounds · {{ friends_count }} friends</p>
+          </div>
+        </div>
+        <div class="progress-dots">
+          {% for dot in "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" %}
+            <span class="progress-dot {% if forloop.counter <= visited_count %}is-active{% endif %}"></span>
+          {% endfor %}
+        </div>
+      </article>
+
+      <div class="component-grid span-9">
+        {% for ground in grounds %}
+          <a class="ground-card site-card" href="{{ ground.get_absolute_url }}">
+            <div class="ground-card__pitch pitch-surface"></div>
+            <div>
+              <h3>{{ ground.name }}</h3>
+              <p class="meta">{{ ground.team.name }} · {{ ground.town_or_city }}</p>
+            </div>
+            <span class="pill" style="justify-self: start; background: var(--color-pitch); color: #fff;">View ground</span>
+          </a>
+        {% empty %}
+          <p class="text-muted">Run <code>uv run python manage.py seed_mvp</code> to add starter grounds.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Complete your profile · The 92{% endblock %}
+
+{% block content %}
+  <section class="page-shell section-block">
+    <article class="form-card site-card-raised stack-lg">
+      <div class="stack">
+        <p class="eyebrow">Almost there</p>
+        <h1 class="section-title">Complete your profile.</h1>
+        <p class="text-muted">We just need a couple more details before we can create your account.</p>
+      </div>
+
+      <form class="stack-lg" method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="form-errors">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% for field in form %}
+          <div class="field-group">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}
+              <span class="meta">{{ field.help_text }}</span>
+            {% endif %}
+            {% for error in field.errors %}
+              <span class="form-errors">{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+        <button class="button button-primary" type="submit">Finish creating account</button>
+      </form>
+    </article>
+  </section>
+{% endblock %}

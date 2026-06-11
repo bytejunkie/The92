@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run *)",
+      "Bash(python -c \"import allauth; print\\(allauth.__version__\\)\")"
+    ]
+  }
+}

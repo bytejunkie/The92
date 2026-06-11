@@ -1,0 +1,8 @@
+interface:
+  display_name: "The 92 Style"
+  short_description: "Style The 92 Django UI consistently"
+  brand_color: "#19704B"
+  default_prompt: "Use $the92-style to style this Django page using The 92 design system and responsive grid."
+
+policy:
+  allow_implicit_invocation: true
