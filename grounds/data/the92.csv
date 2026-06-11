@@ -1,0 +1,93 @@
+team_name,league_level,ground_name,ground_slug,town_or_city,postcode,capacity,opened_year,primary_colour
+Arsenal,premier-league,Emirates Stadium,,London,N7 7AJ,60704,2006,#EF0107
+Aston Villa,premier-league,Villa Park,,Birmingham,B6 6HE,42682,1897,#670E36
+AFC Bournemouth,premier-league,Vitality Stadium,,Bournemouth,BH7 7AF,11307,1910,#DA291C
+Brentford,premier-league,Gtech Community Stadium,,Brentford,TW8 0NT,17250,2020,#E30613
+Brighton & Hove Albion,premier-league,Amex Stadium,,Brighton,BN1 9BL,31800,2011,#0057B8
+Chelsea,premier-league,Stamford Bridge,,London,SW6 1HS,40341,1877,#034694
+Crystal Palace,premier-league,Selhurst Park,,London,SE25 6PU,26309,1924,#1B458F
+Everton,premier-league,Goodison Park,,Liverpool,L4 4EL,39572,1892,#003399
+Fulham,premier-league,Craven Cottage,,London,SW6 6HH,29600,1896,#CC0000
+Ipswich Town,premier-league,Portman Road,,Ipswich,IP1 2DA,30311,1884,#0044A0
+Leicester City,premier-league,King Power Stadium,,Leicester,LE2 7FL,32261,2002,#003090
+Liverpool,premier-league,Anfield,,Liverpool,L4 0TH,61276,1884,#C8102E
+Manchester City,premier-league,Etihad Stadium,,Manchester,M11 3FF,53400,2003,#6CABDD
+Manchester United,premier-league,Old Trafford,,Manchester,M16 0RA,74310,1910,#DA291C
+Newcastle United,premier-league,St James' Park,,Newcastle upon Tyne,NE1 4ST,52305,1892,#241F20
+Nottingham Forest,premier-league,City Ground,,Nottingham,NG2 5FJ,30445,1898,#DD0000
+Southampton,premier-league,St Mary's Stadium,,Southampton,SO14 5FP,32384,2001,#D71920
+Tottenham Hotspur,premier-league,Tottenham Hotspur Stadium,,London,N17 0BX,62850,2019,#132257
+West Ham United,premier-league,London Stadium,,London,E20 2ST,62500,2016,#7A263A
+Wolverhampton Wanderers,premier-league,Molineux,,Wolverhampton,WV1 4QR,31750,1889,#FDB913
+Blackburn Rovers,championship,Ewood Park,,Blackburn,BB2 4JF,31367,1882,#009EE0
+Bristol City,championship,Ashton Gate,,Bristol,BS3 2EJ,27000,1900,#E21A2C
+Burnley,championship,Turf Moor,,Burnley,BB10 4BX,21944,1883,#6C1D45
+Cardiff City,championship,Cardiff City Stadium,,Cardiff,CF11 8AZ,33316,2009,#0070B5
+Coventry City,championship,CBS Arena,,Coventry,CV6 6GE,32609,2005,#58A9E6
+Derby County,championship,Pride Park Stadium,,Derby,DE24 8XL,33597,1997,#1D1D1B
+Hull City,championship,MKM Stadium,,Kingston upon Hull,HU3 6HU,25404,2002,#F5A12D
+Leeds United,championship,Elland Road,,Leeds,LS11 0ES,37792,1897,#182740
+Luton Town,championship,Kenilworth Road,,Luton,LU4 8AW,12056,1905,#F78F1E
+Middlesbrough,championship,Riverside Stadium,,Middlesbrough,TS3 6RS,34742,1995,#E21A2C
+Millwall,championship,The Den,,London,SE16 3LN,20146,1993,#101F5D
+Norwich City,championship,Carrow Road,,Norwich,NR1 1JE,27244,1935,#00A650
+Oxford United,championship,Kassam Stadium,,Oxford,OX4 4XP,12500,2001,#F9A61A
+Plymouth Argyle,championship,Home Park,,Plymouth,PL2 3DQ,17900,1893,#19704B
+Portsmouth,championship,Fratton Park,,Portsmouth,PO4 8RA,20688,1898,#001489
+Preston North End,championship,Deepdale,,Preston,PR1 6RU,23408,1875,#FFFFFF
+Queens Park Rangers,championship,Loftus Road,,London,W12 7PA,18360,1904,#1D5BA4
+Sheffield United,championship,Bramall Lane,,Sheffield,S2 4SU,32702,1889,#EE2737
+Sheffield Wednesday,championship,Hillsborough,,Sheffield,S6 1SW,39732,1899,#003399
+Stoke City,championship,bet365 Stadium,,Stoke-on-Trent,ST4 4EG,30089,1997,#E03A3E
+Sunderland,championship,Stadium of Light,,Sunderland,SR5 1SU,49000,1997,#EB172B
+Swansea City,championship,Swansea.com Stadium,,Swansea,SA1 2FA,21088,2005,#121212
+Watford,championship,Vicarage Road,,Watford,WD18 0ER,22200,1922,#FBEE23
+West Bromwich Albion,championship,The Hawthorns,,West Bromwich,B71 4LF,26688,1900,#122F67
+Barnsley,league-one,Oakwell,,Barnsley,S71 1ET,23287,1887,#EE1C2A
+Birmingham City,league-one,St Andrew's,,Birmingham,B9 4RL,29409,1906,#0000FF
+Blackpool,league-one,Bloomfield Road,,Blackpool,FY1 6JJ,17338,1899,#F68712
+Bolton Wanderers,league-one,Toughsheet Community Stadium,,Bolton,BL6 6JW,28723,1997,#263B97
+Bristol Rovers,league-one,Memorial Stadium,,Bristol,BS7 8FF,12300,1921,#003087
+Burton Albion,league-one,Pirelli Stadium,,Burton upon Trent,DE13 0AR,6912,2005,#F9A71F
+Cambridge United,league-one,Abbey Stadium,,Cambridge,CB5 8LN,8127,1932,#F5A623
+Charlton Athletic,league-one,The Valley,,London,SE7 8BL,27111,1919,#D4011D
+Crawley Town,league-one,Broadfield Stadium,,Crawley,RH11 9RX,6134,1997,#E21A2C
+Exeter City,league-one,St James Park,st-james-park-exeter,Exeter,EX4 6PX,8696,1904,#E31837
+Huddersfield Town,league-one,John Smith's Stadium,,Huddersfield,HD1 6PX,24169,1994,#0E63AD
+Leyton Orient,league-one,Brisbane Road,,London,E10 5NF,9271,1930,#D22B2B
+Lincoln City,league-one,LNER Stadium,,Lincoln,LN5 8LD,10120,1895,#CC0000
+Mansfield Town,league-one,One Call Stadium,,Mansfield,NG18 5DA,9186,1861,#F9A21A
+Northampton Town,league-one,Sixfields Stadium,,Northampton,NN5 5QA,7798,1994,#800000
+Peterborough United,league-one,London Road,,Peterborough,PE2 8AL,14319,1934,#0000CC
+Reading,league-one,Select Car Leasing Stadium,,Reading,RG2 0FL,24161,1998,#004494
+Rotherham United,league-one,New York Stadium,,Rotherham,S60 1AH,12021,2012,#DD2333
+Shrewsbury Town,league-one,Montgomery Waters Meadow,,Shrewsbury,SY2 6ST,9875,1910,#0000FF
+Stevenage,league-one,Lamex Stadium,,Stevenage,SG1 2EH,7800,1976,#DD0000
+Stockport County,league-one,Edgeley Park,,Stockport,SK3 9DD,10852,1891,#004B87
+Wigan Athletic,league-one,DW Stadium,,Wigan,WN5 0UZ,25138,1999,#1D59AF
+Wrexham,league-one,Racecourse Ground,,Wrexham,LL11 2AH,11000,1872,#CC0000
+Wycombe Wanderers,league-one,Adams Park,,High Wycombe,HP12 4HJ,9556,1990,#003087
+AFC Wimbledon,league-two,Cherry Red Records Stadium,,London,KT1 3PB,9315,2020,#2A3990
+Accrington Stanley,league-two,Crown Ground,,Accrington,BB5 5BX,5450,1968,#CC0000
+Barrow,league-two,Holker Street,,Barrow-in-Furness,LA14 5UW,6587,1905,#003399
+Bradford City,league-two,Valley Parade,,Bradford,BD8 7DY,25136,1903,#802020
+Carlisle United,league-two,Brunton Park,,Carlisle,CA1 1LL,17949,1909,#002868
+Cheltenham Town,league-two,Jonny-Rocks Stadium,,Cheltenham,GL50 3LW,7289,1932,#EE2731
+Chesterfield,league-two,Technique Stadium,,Chesterfield,S40 4SX,10504,2010,#0000CC
+Colchester United,league-two,JobServe Community Stadium,,Colchester,CO4 5UP,10105,2008,#003087
+Crewe Alexandra,league-two,Alexandra Stadium,,Crewe,CW2 6EB,10066,1906,#CC0000
+Doncaster Rovers,league-two,Eco-Power Stadium,,Doncaster,DN4 5JT,15231,2006,#CC0000
+Fleetwood Town,league-two,Highbury Stadium,,Fleetwood,FY7 8AF,5327,1939,#CC0000
+Forest Green Rovers,league-two,The New Lawn,,Nailsworth,GL6 0ET,4800,2006,#004812
+Gillingham,league-two,MEMS Priestfield Stadium,,Gillingham,ME7 4DD,11582,1893,#003399
+Grimsby Town,league-two,Blundell Park,,Cleethorpes,DN35 7PY,9052,1899,#000000
+Harrogate Town,league-two,Wetherby Road,,Harrogate,HG2 7SA,3621,1919,#FFDD00
+MK Dons,league-two,Stadium MK,,Milton Keynes,MK1 1ST,30500,2007,#FAD201
+Morecambe,league-two,Mazuma Mobile Stadium,,Morecambe,LA4 4TB,6476,2010,#CC0000
+Newport County,league-two,Rodney Parade,,Newport,NP19 0UU,7850,1877,#F8A620
+Notts County,league-two,Meadow Lane,,Nottingham,NG2 3HJ,20229,1910,#000000
+Port Vale,league-two,Vale Park,,Burslem,ST6 1AW,19052,1950,#FAD102
+Salford City,league-two,Peninsula Stadium,,Salford,M5 5LH,5108,2018,#CC0000
+Swindon Town,league-two,County Ground,,Swindon,SN1 2ED,15728,1896,#CC0000
+Tranmere Rovers,league-two,Prenton Park,,Birkenhead,CH42 9PY,16789,1912,#003366
+Walsall,league-two,Bescot Stadium,,Walsall,WS1 4EX,11300,1990,#CC0000
