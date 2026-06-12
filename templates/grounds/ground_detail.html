@@ -7,20 +7,49 @@
     <div class="page-shell app-grid">
       <div class="ground-main-col stack-lg">
         <div class="stack">
-          <p class="eyebrow">Grounds / {{ ground.team.get_league_level_display }}</p>
+          <nav class="breadcrumb" aria-label="breadcrumb">
+            <a href="{% url 'grounds:list' %}">All grounds</a>
+            <span aria-hidden="true">·</span>
+            <span class="pill league-pill league-pill--{{ ground.team.league_level }}" style="font-size:0.75rem;">
+              {{ ground.team.get_league_level_display }}
+            </span>
+          </nav>
           <h1 class="hero-title">{{ ground.name }}</h1>
-          <p class="hero-copy">{{ ground.team.name }} · {{ ground.town_or_city }}{% if ground.opened_year %} · Opened {{ ground.opened_year }}{% endif %}</p>
+          <p class="hero-copy">
+            {{ ground.team.name }} · {{ ground.town_or_city }}{% if ground.opened_year %} · Est. {{ ground.opened_year }}{% endif %}
+          </p>
         </div>
+
         <div class="actions-row">
-          <a class="button button-claim" href="#">Claim ground</a>
-          <a class="button button-secondary" href="#">Add historic visit</a>
+          {% if user.is_authenticated %}
+            {% if user_has_visited %}
+              <span class="button button-visited">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Visited
+              </span>
+              <form method="post" action="{% url 'grounds:claim' ground.slug %}">
+                {% csrf_token %}
+                <button class="button button-secondary" type="submit">Visit again</button>
+              </form>
+            {% else %}
+              <form method="post" action="{% url 'grounds:claim' ground.slug %}">
+                {% csrf_token %}
+                <button class="button button-claim" type="submit">Claim ground</button>
+              </form>
+            {% endif %}
+            <a class="button button-secondary" href="#">Add historic visit</a>
+          {% else %}
+            <a class="button button-claim" href="{% url 'account_login' %}?next={{ request.path }}">Claim ground</a>
+            <a class="button button-secondary" href="{% url 'account_login' %}?next={{ request.path }}">Log in to collect</a>
+          {% endif %}
         </div>
       </div>
+
       <aside class="ground-side-col site-card-raised stack" style="padding: var(--space-6);">
-        <div class="pitch-surface" style="min-height: 14rem;"></div>
+        <div class="pitch-surface" style="min-height: 14rem; border-top: 4px solid {{ ground.team.primary_colour }};"></div>
         <div>
           <p class="meta">Next fixture</p>
-          <h2>{{ ground.team.name }} matchday</h2>
+          <h2 style="margin:0;">{{ ground.team.name }} matchday</h2>
           <p class="text-muted">Check-in opens near kick-off when fixtures are connected.</p>
         </div>
       </aside>
@@ -31,7 +60,7 @@
     <div class="stats-grid">
       <article class="ground-stat site-card">
         <span class="stat-label">Capacity</span>
-        <strong class="stat-value">{{ ground.capacity|default:"TBC" }}</strong>
+        <strong class="stat-value">{{ ground.capacity|floatformat:"0g"|default:"TBC" }}</strong>
       </article>
       <article class="ground-stat site-card">
         <span class="stat-label">Opened</span>
@@ -39,11 +68,11 @@
       </article>
       <article class="ground-stat site-card">
         <span class="stat-label">Away allocation</span>
-        <strong class="stat-value">{{ ground.away_allocation|default:"TBC" }}</strong>
+        <strong class="stat-value">{{ ground.away_allocation|floatformat:"0g"|default:"TBC" }}</strong>
       </article>
       <article class="ground-stat site-card">
-        <span class="stat-label">Visit status</span>
-        <strong class="stat-value">Open</strong>
+        <span class="stat-label">Visitors</span>
+        <strong class="stat-value">{{ visit_count }}</strong>
       </article>
     </div>
 
@@ -54,7 +83,9 @@
           <span class="info-dot"></span>
           <div>
             <h3>Address</h3>
-            <p class="text-muted">{{ ground.address }}{% if ground.postcode %}, {{ ground.postcode }}{% endif %}</p>
+            <p class="text-muted">
+              {% if ground.address %}{{ ground.address }}, {% endif %}{{ ground.postcode }}
+            </p>
           </div>
         </div>
         <div class="info-row">

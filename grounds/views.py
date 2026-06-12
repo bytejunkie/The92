@@ -1,7 +1,10 @@
-from django.db.models import Case, IntegerField, Q, Value, When
-from django.shortcuts import get_object_or_404, render
+from datetime import date
 
-from .models import Ground, Team
+from django.contrib.auth.decorators import login_required
+from django.db.models import Case, IntegerField, Q, Value, When
+from django.shortcuts import get_object_or_404, redirect, render
+
+from .models import Ground, Team, Visit
 
 LEAGUE_ORDER = Case(
     When(team__league_level=Team.LeagueLevel.PREMIER_LEAGUE, then=Value(1)),
@@ -57,4 +60,38 @@ def ground_list(request):
 
 def ground_detail(request, slug):
     ground = get_object_or_404(Ground.objects.select_related("team"), slug=slug)
-    return render(request, "grounds/ground_detail.html", {"ground": ground})
+    user_has_visited = (
+        request.user.is_authenticated
+        and ground.visits.filter(
+            user=request.user, visit_type=Visit.VisitType.VISITED
+        ).exists()
+    )
+    visit_count = (
+        ground.visits.filter(visit_type=Visit.VisitType.VISITED)
+        .values("user")
+        .distinct()
+        .count()
+    )
+    return render(
+        request,
+        "grounds/ground_detail.html",
+        {
+            "ground": ground,
+            "user_has_visited": user_has_visited,
+            "visit_count": visit_count,
+        },
+    )
+
+
+@login_required
+def claim_ground(request, slug):
+    if request.method != "POST":
+        return redirect("grounds:detail", slug=slug)
+    ground = get_object_or_404(Ground, slug=slug)
+    Visit.objects.create(
+        user=request.user,
+        ground=ground,
+        visit_type=Visit.VisitType.VISITED,
+        visited_on=date.today(),
+    )
+    return redirect("grounds:detail", slug=slug)

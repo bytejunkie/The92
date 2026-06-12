@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
@@ -76,3 +77,42 @@ class Ground(models.Model):
 
     def get_absolute_url(self):
         return reverse("grounds:detail", kwargs={"slug": self.slug})
+
+
+class Visit(models.Model):
+    class VisitType(models.TextChoices):
+        VISITED = "visited", "Visited"
+        WANT_TO_GO = "want-to-go", "Want to go"
+        HISTORIC = "historic", "Historic"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="visits",
+    )
+    ground = models.ForeignKey(
+        Ground,
+        on_delete=models.CASCADE,
+        related_name="visits",
+    )
+    visit_type = models.CharField(
+        max_length=20,
+        choices=VisitType.choices,
+        default=VisitType.VISITED,
+    )
+    visited_on = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "ground"],
+                condition=models.Q(visit_type="want-to-go"),
+                name="unique_want_to_go_per_user_ground",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user} → {self.ground} ({self.visit_type})"

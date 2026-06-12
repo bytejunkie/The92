@@ -8,4 +8,5 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("grounds/", views.ground_list, name="list"),
     path("grounds/<slug:slug>/", views.ground_detail, name="detail"),
+    path("grounds/<slug:slug>/claim/", views.claim_ground, name="claim"),
 ]
