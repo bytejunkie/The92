@@ -9,6 +9,14 @@
     <meta property="og:title" content="{% block og_title %}The 92 · Track every English football ground{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Track every ground in the 92. Build your lifetime list and follow the away days your mates are ticking off.{% endblock %}">
     <meta property="og:type" content="website">
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("theme");
+          if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+        } catch (e) {}
+      })();
+    </script>
     <link rel="stylesheet" href="{% static 'theme/css/tokens.css' %}">
     <link rel="stylesheet" href="{% static 'theme/css/layout.css' %}">
     <link rel="stylesheet" href="{% static 'theme/css/site.css' %}">
@@ -27,6 +35,10 @@
           {% if user.is_authenticated %}<a href="{% url 'accounts:profile' %}">Profile</a>{% else %}<a href="#">Profile</a>{% endif %}
         </div>
         <div class="nav-actions">
+          <button class="button-theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+            <span class="theme-icon theme-icon--light" aria-hidden="true">☀</span>
+            <span class="theme-icon theme-icon--dark" aria-hidden="true">☾</span>
+          </button>
           {% if user.is_authenticated %}
             <a class="pill" href="{% url 'accounts:profile' %}" style="background: var(--color-surface-muted); text-decoration: none;">{{ user.username }}</a>
           {% else %}
@@ -39,5 +51,25 @@
     <main>
       {% block content %}{% endblock %}
     </main>
+    <script>
+      (function () {
+        var btn = document.getElementById("theme-toggle");
+        function applyTheme(dark) {
+          if (dark) {
+            document.documentElement.setAttribute("data-theme", "dark");
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+          }
+        }
+        function isDark() {
+          return document.documentElement.getAttribute("data-theme") === "dark";
+        }
+        btn.addEventListener("click", function () {
+          var dark = !isDark();
+          applyTheme(dark);
+          try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) {}
+        });
+      })();
+    </script>
   </body>
 </html>

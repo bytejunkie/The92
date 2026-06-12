@@ -517,6 +517,32 @@
   background: var(--color-border);
 }
 
+/* Dark mode toggle */
+.button-theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.button-theme-toggle:hover {
+  background: var(--color-border);
+}
+
+.theme-icon--dark  { display: none; }
+.theme-icon--light { display: block; }
+
+[data-theme="dark"] .theme-icon--dark  { display: block; }
+[data-theme="dark"] .theme-icon--light { display: none; }
+
 /* Pagination */
 .pagination-nav {
   display: flex;
