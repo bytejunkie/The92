@@ -8,7 +8,72 @@
     <div class="grounds-list-header stack">
       <p class="eyebrow">The 92</p>
       <h1 class="section-title">All 92 grounds.</h1>
-      <p class="text-muted">Every current Premier League and English Football League ground. <strong>{{ grounds|length }} grounds</strong> in the database.</p>
+      <p class="text-muted">
+        {% if current_q and current_league %}
+          Showing <strong>{{ grounds|length }} ground{{ grounds|length|pluralize }}</strong> in
+          <strong>
+            {% if current_league == "premier-league" %}the Premier League
+            {% elif current_league == "championship" %}the Championship
+            {% elif current_league == "league-one" %}League One
+            {% elif current_league == "league-two" %}League Two
+            {% endif %}
+          </strong> matching <strong>"{{ current_q }}"</strong>.
+        {% elif current_q %}
+          <strong>{{ grounds|length }} ground{{ grounds|length|pluralize }}</strong> matching <strong>"{{ current_q }}"</strong>.
+        {% elif current_league %}
+          <strong>{{ grounds|length }} ground{{ grounds|length|pluralize }}</strong> in
+          <strong>
+            {% if current_league == "premier-league" %}the Premier League
+            {% elif current_league == "championship" %}the Championship
+            {% elif current_league == "league-one" %}League One
+            {% elif current_league == "league-two" %}League Two
+            {% endif %}
+          </strong>.
+        {% else %}
+          Every current Premier League and English Football League ground. <strong>{{ grounds|length }} grounds</strong> in the database.
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="filter-bar">
+      <form method="get" class="search-form" role="search">
+        {% if current_league %}<input type="hidden" name="league" value="{{ current_league }}">{% endif %}
+        <input
+          class="search-input"
+          type="search"
+          name="q"
+          value="{{ current_q }}"
+          placeholder="Search grounds or teams…"
+          aria-label="Search grounds or teams"
+        >
+        <button class="button-secondary search-submit" type="submit">Search</button>
+        {% if current_q or current_league %}
+          <a class="button-ghost" href="{% url 'grounds:list' %}">Clear</a>
+        {% endif %}
+      </form>
+
+      <div class="filter-pills" role="group" aria-label="Filter by league">
+        <a
+          class="pill filter-pill{% if not current_league %} filter-pill--active{% endif %}"
+          href="{% url 'grounds:list' %}{% if current_q %}?q={{ current_q }}{% endif %}"
+        >All</a>
+        <a
+          class="pill filter-pill league-pill--premier-league{% if current_league == 'premier-league' %} filter-pill--active{% endif %}"
+          href="?league=premier-league{% if current_q %}&q={{ current_q }}{% endif %}"
+        >Premier League</a>
+        <a
+          class="pill filter-pill league-pill--championship{% if current_league == 'championship' %} filter-pill--active{% endif %}"
+          href="?league=championship{% if current_q %}&q={{ current_q }}{% endif %}"
+        >Championship</a>
+        <a
+          class="pill filter-pill league-pill--league-one{% if current_league == 'league-one' %} filter-pill--active{% endif %}"
+          href="?league=league-one{% if current_q %}&q={{ current_q }}{% endif %}"
+        >League One</a>
+        <a
+          class="pill filter-pill league-pill--league-two{% if current_league == 'league-two' %} filter-pill--active{% endif %}"
+          href="?league=league-two{% if current_q %}&q={{ current_q }}{% endif %}"
+        >League Two</a>
+      </div>
     </div>
 
     <div class="component-grid">
@@ -40,8 +105,13 @@
         </a>
       {% empty %}
         <article class="site-card stack" style="padding: var(--space-6); grid-column: 1 / -1;">
-          <h2>No grounds yet</h2>
-          <p class="text-muted">Run <code>uv run python manage.py import_92</code> to load all 92.</p>
+          {% if current_q or current_league %}
+            <h2>No grounds found</h2>
+            <p class="text-muted">Try a different search or <a href="{% url 'grounds:list' %}">view all 92</a>.</p>
+          {% else %}
+            <h2>No grounds yet</h2>
+            <p class="text-muted">Run <code>uv run python manage.py import_92</code> to load all 92.</p>
+          {% endif %}
         </article>
       {% endfor %}
     </div>

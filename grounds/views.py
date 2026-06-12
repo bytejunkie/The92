@@ -1,4 +1,4 @@
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.shortcuts import get_object_or_404, render
 
 from .models import Ground, Team
@@ -26,11 +26,33 @@ def home(request):
     return render(request, "grounds/home.html", context)
 
 
+VALID_LEAGUES = {c[0] for c in Team.LeagueLevel.choices}
+
+
 def ground_list(request):
+    league = request.GET.get("league", "").strip()
+    q = request.GET.get("q", "").strip()
+
     grounds = Ground.objects.select_related("team").annotate(
         league_order=LEAGUE_ORDER
     ).order_by("league_order", "team__name")
-    return render(request, "grounds/ground_list.html", {"grounds": grounds})
+
+    if league and league in VALID_LEAGUES:
+        grounds = grounds.filter(team__league_level=league)
+    else:
+        league = ""
+
+    if q:
+        grounds = grounds.filter(
+            Q(name__icontains=q) | Q(team__name__icontains=q)
+        )
+
+    context = {
+        "grounds": grounds,
+        "current_league": league,
+        "current_q": q,
+    }
+    return render(request, "grounds/ground_list.html", context)
 
 
 def ground_detail(request, slug):
