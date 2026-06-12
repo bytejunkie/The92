@@ -306,6 +306,31 @@ T-050  Deployment
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 9 — VISUAL IDENTITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Assets that replace placeholder UI with real football branding.
+
+T-051  Replace league pills with official league logos
+       Swap the text-based league pills (PREMIER LEAGUE, CHAMPIONSHIP, etc.)
+       for the official competition logo wherever league level is displayed —
+       ground cards, ground detail, ground list filter row.
+       Add a LeagueLogo model or static asset map keyed on league_level slug.
+       Source: Premier League, EFL, and league websites publish official
+       brand assets; Wikipedia Commons also has SVG versions. Verify licence
+       before use. Fall back to the current text pill if no logo is available.
+
+T-052  Team shirt image on ground cards
+       Replace the pitch-surface placeholder on ground cards (list page,
+       home page preview) with an image of the team's current or recent
+       home shirt. Add a Team.shirt ImageField (upload_to="team-shirts/",
+       blank=True). Render the shirt image inside .ground-card__pitch with
+       object-fit: contain on a light/muted background.
+       Source: official club shop images, Wikipedia Commons kit illustrations,
+       or a kit database API (e.g. Football-Data.org kit URLs where available).
+       Pitch-surface texture remains the fallback when no shirt is uploaded.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DATA SOURCES REFERENCE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
