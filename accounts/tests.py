@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from grounds.models import Ground, Team, Visit
 
-from .models import User, validate_username_comedy
+from .models import Follow, User, validate_username_comedy
 from django.core.exceptions import ValidationError
 
 
@@ -303,3 +303,221 @@ class ProfileTabTests(TestCase):
         )
         response = self.client.get(self.profile_url, {"tab": "visited"})
         self.assertEqual(response.context["visited_count"], 0)
+
+
+def _make_user(username, email, password="S3cur3Pass!"):
+    return User.objects.create_user(
+        username=username,
+        email=email,
+        birthday=datetime.date(1990, 1, 1),
+        password=password,
+    )
+
+
+def _make_ground(name="Turf Moor", town="Burnley"):
+    team = Team.objects.create(
+        name=f"{name} FC",
+        league_level=Team.LeagueLevel.CHAMPIONSHIP,
+        primary_colour="#5a1a82",
+    )
+    return Ground.objects.create(name=name, team=team, town_or_city=town)
+
+
+class FollowModelTests(TestCase):
+    def setUp(self):
+        self.alice = _make_user("alice", "alice@example.com")
+        self.bob = _make_user("bob", "bob@example.com")
+
+    def test_create_follow(self):
+        Follow.objects.create(follower=self.alice, following=self.bob)
+        self.assertEqual(Follow.objects.count(), 1)
+
+    def test_follow_str(self):
+        f = Follow.objects.create(follower=self.alice, following=self.bob)
+        self.assertIn("alice", str(f))
+        self.assertIn("bob", str(f))
+
+    def test_duplicate_follow_raises(self):
+        Follow.objects.create(follower=self.alice, following=self.bob)
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            Follow.objects.create(follower=self.alice, following=self.bob)
+
+    def test_follower_count(self):
+        Follow.objects.create(follower=self.alice, following=self.bob)
+        self.assertEqual(Follow.objects.filter(following=self.bob).count(), 1)
+
+
+class FollowUserViewTests(TestCase):
+    def setUp(self):
+        self.alice = _make_user("alice", "alice@example.com")
+        self.bob = _make_user("bob", "bob@example.com")
+        self.client.force_login(self.alice)
+        self.follow_url = reverse("accounts:follow", kwargs={"username": "bob"})
+
+    def test_follow_creates_relationship(self):
+        self.client.post(self.follow_url)
+        self.assertTrue(Follow.objects.filter(follower=self.alice, following=self.bob).exists())
+
+    def test_follow_redirects_to_profile(self):
+        response = self.client.post(self.follow_url)
+        self.assertRedirects(
+            response,
+            reverse("accounts:profile_user", kwargs={"username": "bob"}),
+        )
+
+    def test_unfollow_removes_relationship(self):
+        Follow.objects.create(follower=self.alice, following=self.bob)
+        self.client.post(self.follow_url)
+        self.assertFalse(Follow.objects.filter(follower=self.alice, following=self.bob).exists())
+
+    def test_cannot_follow_self(self):
+        self_url = reverse("accounts:follow", kwargs={"username": "alice"})
+        self.client.post(self_url)
+        self.assertFalse(Follow.objects.filter(follower=self.alice, following=self.alice).exists())
+
+    def test_follow_requires_login(self):
+        self.client.logout()
+        response = self.client.post(self.follow_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Follow.objects.exists())
+
+    def test_get_request_redirects(self):
+        response = self.client.get(self.follow_url)
+        self.assertRedirects(
+            response,
+            reverse("accounts:profile_user", kwargs={"username": "bob"}),
+        )
+
+    def test_follower_count_shown_on_profile(self):
+        Follow.objects.create(follower=self.alice, following=self.bob)
+        response = self.client.get(
+            reverse("accounts:profile_user", kwargs={"username": "bob"})
+        )
+        self.assertEqual(response.context["follower_count"], 1)
+
+
+class EditProfileViewTests(TestCase):
+    def setUp(self):
+        self.user = _make_user("groundhopper", "hop@example.com")
+        self.client.force_login(self.user)
+        self.url = reverse("accounts:edit_profile")
+
+    def test_get_renders_form(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/edit_profile.html")
+        self.assertIn("form", response.context)
+
+    def test_edit_profile_requires_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_valid_post_updates_username(self):
+        self.client.post(
+            self.url,
+            {
+                "username": "hopper92",
+                "birthday": "1990-01-01",
+                "favourite_team": "",
+            },
+        )
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, "hopper92")
+
+    def test_valid_post_redirects_to_profile(self):
+        response = self.client.post(
+            self.url,
+            {
+                "username": "hopper92",
+                "birthday": "1990-01-01",
+                "favourite_team": "",
+            },
+        )
+        self.assertRedirects(response, reverse("accounts:profile"))
+
+    def test_invalid_post_rerenders_form(self):
+        response = self.client.post(self.url, {"username": "", "birthday": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("form", response.context)
+
+
+class FeedViewTests(TestCase):
+    def setUp(self):
+        self.alice = _make_user("alice", "alice@example.com")
+        self.bob = _make_user("bob", "bob@example.com")
+        self.ground = _make_ground()
+        self.client.force_login(self.alice)
+        self.url = reverse("accounts:feed")
+
+    def test_feed_requires_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_feed_empty_when_not_following(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["following_count"], 0)
+
+    def test_feed_shows_followed_user_visits(self):
+        Follow.objects.create(follower=self.alice, following=self.bob)
+        Visit.objects.create(
+            user=self.bob, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        response = self.client.get(self.url)
+        self.assertEqual(len(response.context["visits"]), 1)
+
+    def test_feed_excludes_own_visits(self):
+        Visit.objects.create(
+            user=self.alice, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        response = self.client.get(self.url)
+        self.assertEqual(len(response.context["visits"]), 0)
+
+    def test_feed_excludes_want_to_go_visits(self):
+        Follow.objects.create(follower=self.alice, following=self.bob)
+        Visit.objects.create(
+            user=self.bob, ground=self.ground, visit_type=Visit.VisitType.WANT_TO_GO
+        )
+        response = self.client.get(self.url)
+        self.assertEqual(len(response.context["visits"]), 0)
+
+
+class WishlistPrivacyTests(TestCase):
+    def setUp(self):
+        self.owner = _make_user("owner", "owner@example.com")
+        self.follower = _make_user("follower", "follower@example.com")
+        self.stranger = _make_user("stranger", "stranger@example.com")
+        self.ground = _make_ground()
+        Visit.objects.create(
+            user=self.owner, ground=self.ground, visit_type=Visit.VisitType.WANT_TO_GO
+        )
+        self.profile_url = reverse(
+            "accounts:profile_user", kwargs={"username": "owner"}
+        )
+
+    def test_owner_can_see_wishlist(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(self.profile_url, {"tab": "want-to-go"})
+        self.assertTrue(response.context["can_see_wishlist"])
+        self.assertEqual(response.context["current_tab"], "want-to-go")
+
+    def test_follower_can_see_wishlist(self):
+        Follow.objects.create(follower=self.follower, following=self.owner)
+        self.client.force_login(self.follower)
+        response = self.client.get(self.profile_url, {"tab": "want-to-go"})
+        self.assertTrue(response.context["can_see_wishlist"])
+        self.assertEqual(response.context["current_tab"], "want-to-go")
+
+    def test_stranger_cannot_see_wishlist_tab(self):
+        self.client.force_login(self.stranger)
+        response = self.client.get(self.profile_url, {"tab": "want-to-go"})
+        self.assertFalse(response.context["can_see_wishlist"])
+        self.assertEqual(response.context["current_tab"], "visited")
+
+    def test_anonymous_cannot_see_wishlist_tab(self):
+        response = self.client.get(self.profile_url, {"tab": "want-to-go"})
+        self.assertFalse(response.context["can_see_wishlist"])
+        self.assertEqual(response.context["current_tab"], "visited")

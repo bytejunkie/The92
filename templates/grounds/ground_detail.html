@@ -83,6 +83,21 @@
       </article>
     </div>
 
+    {% if friends_here %}
+      <div class="stack">
+        <h2>Friends who've been here</h2>
+        <div class="avatar-row">
+          {% for friend in friends_here %}
+            <a class="avatar" href="{% url 'accounts:profile_user' friend.username %}"
+               title="{{ friend.username }}"
+               style="display:grid; place-items:center; background:var(--color-pitch); color:#fff; font-size:0.875rem; font-weight:800; text-decoration:none;">
+              {{ friend.username|slice:":2"|upper }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
     <div class="app-grid">
       <article class="site-card stack-lg ground-main-col" style="padding: var(--space-6);">
         <h2>Address and essentials</h2>

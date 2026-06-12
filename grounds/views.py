@@ -1,10 +1,15 @@
 from datetime import date
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Case, IntegerField, Q, Value, When
 from django.shortcuts import get_object_or_404, redirect, render
 
+from accounts.models import Follow
+
 from .models import Ground, Team, Visit
+
+User = get_user_model()
 
 LEAGUE_ORDER = Case(
     When(team__league_level=Team.LeagueLevel.PREMIER_LEAGUE, then=Value(1)),
@@ -28,11 +33,14 @@ def home(request):
             .distinct()
             .count()
         )
+    friends_count = 0
+    if request.user.is_authenticated:
+        friends_count = Follow.objects.filter(follower=request.user).count()
     context = {
         "grounds": grounds,
         "visited_count": visited_count,
         "total_count": 92,
-        "friends_count": 248,
+        "friends_count": friends_count,
     }
     return render(request, "grounds/home.html", context)
 
@@ -89,6 +97,18 @@ def ground_detail(request, slug):
         .distinct()
         .count()
     )
+    friends_here = []
+    if request.user.is_authenticated:
+        following_ids = Follow.objects.filter(
+            follower=request.user
+        ).values_list("following_id", flat=True)
+        friends_here = list(
+            User.objects.filter(
+                visits__ground=ground,
+                visits__visit_type=Visit.VisitType.VISITED,
+                pk__in=following_ids,
+            ).distinct()[:8]
+        )
     return render(
         request,
         "grounds/ground_detail.html",
@@ -97,6 +117,7 @@ def ground_detail(request, slug):
             "user_has_visited": user_has_visited,
             "user_wants_to_go": user_wants_to_go,
             "visit_count": visit_count,
+            "friends_here": friends_here,
         },
     )
 

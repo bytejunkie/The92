@@ -22,6 +22,15 @@ class RegisterForm(UserCreationForm):
         }
 
 
+class EditProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("username", "birthday", "favourite_team")
+        widgets = {
+            "birthday": forms.DateInput(attrs={"type": "date"}),
+        }
+
+
 class SocialSignupForm(SocialSignupFormBase):
     birthday = forms.DateField(
         widget=forms.DateInput(attrs={"type": "date"}),

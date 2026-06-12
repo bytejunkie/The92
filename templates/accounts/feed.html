@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Feed · The 92{% endblock %}
+
+{% block content %}
+  <section class="page-shell section-block stack-lg">
+    <div class="stack">
+      <p class="eyebrow">Social</p>
+      <h1 class="section-title">Feed</h1>
+      <p class="text-muted">Recent ground visits from people you follow.</p>
+    </div>
+
+    {% if not following_count %}
+      <div class="site-card stack" style="padding: var(--space-8); text-align: center; max-width: 32rem; margin-inline: auto;">
+        <h2>Nobody followed yet</h2>
+        <p class="text-muted">Find some fellow ground-hoppers and follow them to see their visits here.</p>
+        <a class="button button-primary" href="{% url 'grounds:list' %}" style="justify-self: center;">Explore grounds</a>
+      </div>
+    {% elif not visits %}
+      <div class="site-card stack" style="padding: var(--space-8); text-align: center; max-width: 32rem; margin-inline: auto;">
+        <h2>Nothing yet</h2>
+        <p class="text-muted">The people you follow haven't logged any visits yet.</p>
+      </div>
+    {% else %}
+      <div class="stack">
+        {% for visit in visits %}
+          <article class="site-card" style="padding: var(--space-4);">
+            <div class="activity-row">
+              <a class="avatar" href="{% url 'accounts:profile_user' visit.user.username %}"
+                 style="display:grid; place-items:center; background:var(--color-pitch); color:#fff; font-size:0.875rem; font-weight:800; text-decoration:none;">
+                {{ visit.user.username|slice:":2"|upper }}
+              </a>
+              <div class="stack" style="gap:var(--space-1);">
+                <p style="margin:0;">
+                  <a href="{% url 'accounts:profile_user' visit.user.username %}" style="font-weight:700;">{{ visit.user.username }}</a>
+                  visited
+                  <a href="{{ visit.ground.get_absolute_url }}" style="font-weight:700;">{{ visit.ground.name }}</a>
+                </p>
+                <p class="meta">
+                  {{ visit.ground.team.name }} · {{ visit.ground.town_or_city }}
+                  {% if visit.visited_on %} · {{ visit.visited_on }}{% endif %}
+                </p>
+              </div>
+              <span class="pill league-pill league-pill--{{ visit.ground.team.league_level }}" style="align-self:start; margin-left:auto;">
+                {{ visit.ground.team.get_league_level_display }}
+              </span>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

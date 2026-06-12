@@ -12,26 +12,35 @@
           {% if profile_user.favourite_team %}
             <p class="hero-copy">{{ profile_user.favourite_team.name }}</p>
           {% endif %}
+          <p class="meta" style="color:rgb(235 247 237 / 0.7);">
+            <strong style="color:#fff;">{{ follower_count }}</strong> follower{{ follower_count|pluralize }} &nbsp;·&nbsp;
+            <strong style="color:#fff;">{{ following_count }}</strong> following
+          </p>
         </div>
-        {% if is_own_profile %}
-          <div class="actions-row">
-            <a class="button button-secondary" href="#">Edit profile</a>
-          </div>
-        {% endif %}
+        <div class="actions-row">
+          {% if is_own_profile %}
+            <a class="button button-secondary" href="{% url 'accounts:edit_profile' %}">Edit profile</a>
+          {% elif user.is_authenticated %}
+            <form method="post" action="{% url 'accounts:follow' profile_user.username %}">
+              {% csrf_token %}
+              {% if viewer_follows %}
+                <button class="button button-secondary" type="submit">Unfollow</button>
+              {% else %}
+                <button class="button button-primary" type="submit">Follow</button>
+              {% endif %}
+            </form>
+          {% endif %}
+        </div>
       </div>
 
       <aside class="ground-side-col site-card-raised stack" style="padding: var(--space-6);">
         <div class="actions-row" style="justify-content: space-between;">
-          <h2 style="margin:0;">Your 92</h2>
+          <h2 style="margin:0;">{{ profile_user.username }}'s 92</h2>
           <span class="pill" style="background: var(--color-pitch); color: #fff;">{{ visited_count }} / {{ total_count }}</span>
         </div>
         <div class="stack">
           <strong class="stat-value">{{ visited_count }} <span class="meta" style="font-size:1rem; font-weight:600;">of {{ total_count }}</span></strong>
-          <div class="progress-dots" aria-label="{{ visited_count }} of {{ total_count }} grounds visited">
-            {% for i in "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" %}
-              <span class="progress-dot {% if forloop.counter <= visited_count %}is-active{% endif %}"></span>
-            {% endfor %}
-          </div>
+          {% include "partials/progress_bar.html" with visited_count=visited_count total_count=total_count %}
         </div>
       </aside>
     </div>
@@ -43,10 +52,12 @@
          href="?tab=visited">
         Visited <span class="tab-count">{{ visited_count }}</span>
       </a>
-      <a class="pill tab-pill {% if current_tab == 'want-to-go' %}tab-pill--active{% endif %}"
-         href="?tab=want-to-go">
-        Want to go <span class="tab-count">{{ want_to_go|length }}</span>
-      </a>
+      {% if can_see_wishlist %}
+        <a class="pill tab-pill {% if current_tab == 'want-to-go' %}tab-pill--active{% endif %}"
+           href="?tab=want-to-go">
+          Want to go <span class="tab-count">{{ want_to_go|length }}</span>
+        </a>
+      {% endif %}
       <a class="pill tab-pill {% if current_tab == 'historic' %}tab-pill--active{% endif %}"
          href="?tab=historic">
         Historic <span class="tab-count">{{ historic|length }}</span>

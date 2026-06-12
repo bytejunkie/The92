@@ -5,7 +5,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from grounds.models import Ground, Visit
 
-from .forms import RegisterForm
+from .forms import EditProfileForm, RegisterForm
+from .models import Follow
 
 User = get_user_model()
 
@@ -23,7 +24,6 @@ def register(request):
             return redirect("grounds:home")
     else:
         form = RegisterForm()
-
     return render(request, "accounts/register.html", {"form": form})
 
 
@@ -35,8 +35,19 @@ def profile(request, username=None):
             return redirect("login")
         profile_user = request.user
 
+    is_own_profile = request.user.is_authenticated and profile_user == request.user
+    viewer_follows = (
+        request.user.is_authenticated
+        and not is_own_profile
+        and Follow.objects.filter(follower=request.user, following=profile_user).exists()
+    )
+    can_see_wishlist = is_own_profile or viewer_follows
+
     tab = request.GET.get("tab", "visited")
     if tab not in VALID_TABS:
+        tab = "visited"
+    # Hide want-to-go tab from non-followers
+    if tab == "want-to-go" and not can_see_wishlist:
         tab = "visited"
 
     latest_visit_pk_sq = (
@@ -64,22 +75,19 @@ def profile(request, username=None):
     visited_count = visited_grounds.count()
 
     want_to_go = (
-        Visit.objects.filter(
-            user=profile_user, visit_type=Visit.VisitType.WANT_TO_GO
-        )
+        Visit.objects.filter(user=profile_user, visit_type=Visit.VisitType.WANT_TO_GO)
         .select_related("ground__team")
         .order_by("-created_at")
     )
 
     historic = (
-        Visit.objects.filter(
-            user=profile_user, visit_type=Visit.VisitType.HISTORIC
-        )
+        Visit.objects.filter(user=profile_user, visit_type=Visit.VisitType.HISTORIC)
         .select_related("ground__team")
         .order_by("-visited_on", "-created_at")
     )
 
-    is_own_profile = request.user.is_authenticated and profile_user == request.user
+    follower_count = Follow.objects.filter(following=profile_user).count()
+    following_count = Follow.objects.filter(follower=profile_user).count()
 
     return render(
         request,
@@ -92,6 +100,53 @@ def profile(request, username=None):
             "historic": historic,
             "total_count": 92,
             "is_own_profile": is_own_profile,
+            "viewer_follows": viewer_follows,
+            "can_see_wishlist": can_see_wishlist,
+            "follower_count": follower_count,
+            "following_count": following_count,
             "current_tab": tab,
         },
     )
+
+
+@login_required
+def edit_profile(request):
+    if request.method == "POST":
+        form = EditProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect("accounts:profile")
+    else:
+        form = EditProfileForm(instance=request.user)
+    return render(request, "accounts/edit_profile.html", {"form": form})
+
+
+@login_required
+def follow_user(request, username):
+    if request.method != "POST":
+        return redirect("accounts:profile_user", username=username)
+    target = get_object_or_404(User, username=username)
+    if target == request.user:
+        return redirect("accounts:profile_user", username=username)
+    existing = Follow.objects.filter(follower=request.user, following=target).first()
+    if existing:
+        existing.delete()
+    else:
+        Follow.objects.create(follower=request.user, following=target)
+    return redirect("accounts:profile_user", username=username)
+
+
+@login_required
+def feed(request):
+    following_ids = Follow.objects.filter(
+        follower=request.user
+    ).values_list("following_id", flat=True)
+    visits = (
+        Visit.objects.filter(
+            user_id__in=following_ids,
+            visit_type=Visit.VisitType.VISITED,
+        )
+        .select_related("user", "ground__team")
+        .order_by("-created_at")[:50]
+    )
+    return render(request, "accounts/feed.html", {"visits": visits, "following_count": len(following_ids)})
