@@ -55,6 +55,8 @@ class Ground(models.Model):
     capacity = models.PositiveIntegerField(null=True, blank=True)
     opened_year = models.PositiveIntegerField(null=True, blank=True)
     image = models.ImageField(upload_to="grounds/", blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     away_allocation = models.PositiveIntegerField(null=True, blank=True)
     away_entrance = models.CharField(max_length=160, blank=True)
     parking_notes = models.TextField(blank=True)
