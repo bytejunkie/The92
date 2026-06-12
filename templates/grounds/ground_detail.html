@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block title %}{{ ground.name }} · The 92{% endblock %}
+{% block meta_description %}{{ ground.name }}, home of {{ ground.team.name }} in {{ ground.town_or_city }}. Capacity {{ ground.capacity|floatformat:"0g" }}, opened {{ ground.opened_year }}. Log your visit on The 92.{% endblock %}
+{% block og_title %}{{ ground.name }} · The 92{% endblock %}
+{% block og_description %}{{ ground.name }}, home of {{ ground.team.name }} in {{ ground.town_or_city }}. Capacity {{ ground.capacity|floatformat:"0g" }}.{% endblock %}
 
 {% block content %}
   <section class="hero-band ground-hero">

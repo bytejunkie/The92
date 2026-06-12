@@ -1,7 +1,10 @@
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.db.models import Max, OuterRef, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
 
 from grounds.models import Ground, Visit
 
@@ -13,6 +16,15 @@ User = get_user_model()
 VALID_TABS = {"visited", "want-to-go", "historic"}
 
 
+@method_decorator(
+    ratelimit(key="ip", rate="10/10m", method="POST", block=True),
+    name="dispatch",
+)
+class RateLimitedLoginView(LoginView):
+    pass
+
+
+@ratelimit(key="ip", rate="10/10m", method="POST", block=True)
 def register(request):
     if request.user.is_authenticated:
         return redirect("grounds:home")

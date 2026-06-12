@@ -10,7 +10,7 @@
       <h1 class="section-title">All 92 grounds.</h1>
       <p class="text-muted">
         {% if current_q and current_league %}
-          Showing <strong>{{ grounds|length }} ground{{ grounds|length|pluralize }}</strong> in
+          Showing <strong>{{ ground_count }} ground{{ ground_count|pluralize }}</strong> in
           <strong>
             {% if current_league == "premier-league" %}the Premier League
             {% elif current_league == "championship" %}the Championship
@@ -19,9 +19,9 @@
             {% endif %}
           </strong> matching <strong>"{{ current_q }}"</strong>.
         {% elif current_q %}
-          <strong>{{ grounds|length }} ground{{ grounds|length|pluralize }}</strong> matching <strong>"{{ current_q }}"</strong>.
+          <strong>{{ ground_count }} ground{{ ground_count|pluralize }}</strong> matching <strong>"{{ current_q }}"</strong>.
         {% elif current_league %}
-          <strong>{{ grounds|length }} ground{{ grounds|length|pluralize }}</strong> in
+          <strong>{{ ground_count }} ground{{ ground_count|pluralize }}</strong> in
           <strong>
             {% if current_league == "premier-league" %}the Premier League
             {% elif current_league == "championship" %}the Championship
@@ -30,7 +30,7 @@
             {% endif %}
           </strong>.
         {% else %}
-          Every current Premier League and English Football League ground. <strong>{{ grounds|length }} grounds</strong> in the database.
+          Every current Premier League and English Football League ground. <strong>{{ ground_count }} grounds</strong> in the database.
         {% endif %}
       </p>
     </div>
@@ -118,6 +118,32 @@
         </article>
       {% endfor %}
     </div>
+
+    {% if page_obj.has_other_pages %}
+      <nav class="pagination-nav" aria-label="Pagination">
+        {% if page_obj.has_previous %}
+          <a class="pill filter-pill filter-pill--active"
+             href="?page={{ page_obj.previous_page_number }}{% if current_league %}&league={{ current_league }}{% endif %}{% if current_q %}&q={{ current_q }}{% endif %}">
+            ← Prev
+          </a>
+        {% else %}
+          <span class="pill filter-pill" style="opacity:0.3;">← Prev</span>
+        {% endif %}
+
+        <span class="meta" style="align-self:center;">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+          <a class="pill filter-pill filter-pill--active"
+             href="?page={{ page_obj.next_page_number }}{% if current_league %}&league={{ current_league }}{% endif %}{% if current_q %}&q={{ current_q }}{% endif %}">
+            Next →
+          </a>
+        {% else %}
+          <span class="pill filter-pill" style="opacity:0.3;">Next →</span>
+        {% endif %}
+      </nav>
+    {% endif %}
 
   </section>
 {% endblock %}

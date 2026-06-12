@@ -517,6 +517,14 @@
   background: var(--color-border);
 }
 
+/* Pagination */
+.pagination-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
 /* Avatar row — horizontal stack of circular avatars */
 .avatar-row {
   display: flex;

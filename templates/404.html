@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found · The 92{% endblock %}
+
+{% block content %}
+  <section class="page-shell section-block" style="min-height: 60vh; display: grid; place-items: center;">
+    <div class="site-card stack" style="padding: var(--space-10); text-align: center; max-width: 32rem;">
+      <p class="eyebrow">404</p>
+      <h1 class="section-title">Ground not found</h1>
+      <p class="text-muted">That page doesn't exist — maybe the ground moved, or the link is wrong.</p>
+      <div class="actions-row" style="justify-content: center;">
+        <a class="button button-primary" href="{% url 'grounds:list' %}">View all 92</a>
+        <a class="button button-secondary" href="{% url 'grounds:home' %}">Home</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

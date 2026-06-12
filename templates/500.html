@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Server error · The 92{% endblock %}
+
+{% block content %}
+  <section class="page-shell section-block" style="min-height: 60vh; display: grid; place-items: center;">
+    <div class="site-card stack" style="padding: var(--space-10); text-align: center; max-width: 32rem;">
+      <p class="eyebrow">500</p>
+      <h1 class="section-title">Something went wrong</h1>
+      <p class="text-muted">We've hit an unexpected error. Try again in a moment.</p>
+      <div class="actions-row" style="justify-content: center;">
+        <a class="button button-primary" href="{% url 'grounds:home' %}">Back to home</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}
