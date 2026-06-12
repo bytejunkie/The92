@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Remove visit · The 92{% endblock %}
+
+{% block content %}
+  <section class="page-shell section-block">
+    <div class="form-card site-card stack-lg" style="max-width: 34rem;">
+      <div class="stack">
+        <p class="eyebrow">Remove visit</p>
+        <h1 class="section-title">Are you sure?</h1>
+        <p class="text-muted">
+          This will remove your
+          <strong>{{ visit.get_visit_type_display|lower }}</strong> record for
+          <strong>{{ visit.ground.name }}</strong>.
+          {% if visit.visit_type == "visited" %}Other visits to this ground are not affected.{% endif %}
+        </p>
+      </div>
+      <div class="actions-row">
+        <form method="post">
+          {% csrf_token %}
+          <button class="button button-claim" type="submit">Remove visit</button>
+        </form>
+        <a class="button button-secondary" href="{{ visit.ground.get_absolute_url }}">Cancel</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

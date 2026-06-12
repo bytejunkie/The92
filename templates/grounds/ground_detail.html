@@ -37,7 +37,14 @@
                 <button class="button button-claim" type="submit">Claim ground</button>
               </form>
             {% endif %}
-            <a class="button button-secondary" href="#">Add historic visit</a>
+            <form method="post" action="{% url 'grounds:want' ground.slug %}">
+              {% csrf_token %}
+              {% if user_wants_to_go %}
+                <button class="button button-wanted" type="submit">★ Wanted</button>
+              {% else %}
+                <button class="button button-secondary" type="submit">☆ Want to go</button>
+              {% endif %}
+            </form>
           {% else %}
             <a class="button button-claim" href="{% url 'account_login' %}?next={{ request.path }}">Claim ground</a>
             <a class="button button-secondary" href="{% url 'account_login' %}?next={{ request.path }}">Log in to collect</a>

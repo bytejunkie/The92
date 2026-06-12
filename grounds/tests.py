@@ -292,3 +292,91 @@ class HomeViewTests(TestCase):
         self.client.login(username="groundhopper", password="testpass123")
         response = self.client.get(reverse("grounds:home"))
         self.assertEqual(response.context["visited_count"], 1)
+
+
+class WantGroundViewTests(TestCase):
+    def setUp(self):
+        self.user = make_user()
+        self.ground = make_ground()
+        self.want_url = reverse("grounds:want", kwargs={"slug": self.ground.slug})
+        self.detail_url = reverse("grounds:detail", kwargs={"slug": self.ground.slug})
+
+    def test_post_creates_want_to_go(self):
+        self.client.login(username="groundhopper", password="testpass123")
+        self.client.post(self.want_url)
+        self.assertTrue(
+            Visit.objects.filter(
+                user=self.user, ground=self.ground, visit_type=Visit.VisitType.WANT_TO_GO
+            ).exists()
+        )
+
+    def test_post_again_removes_want_to_go(self):
+        self.client.login(username="groundhopper", password="testpass123")
+        self.client.post(self.want_url)
+        self.client.post(self.want_url)
+        self.assertFalse(
+            Visit.objects.filter(
+                user=self.user, ground=self.ground, visit_type=Visit.VisitType.WANT_TO_GO
+            ).exists()
+        )
+
+    def test_redirects_to_detail(self):
+        self.client.login(username="groundhopper", password="testpass123")
+        response = self.client.post(self.want_url)
+        self.assertRedirects(response, self.detail_url)
+
+    def test_unauthenticated_redirects_to_login(self):
+        response = self.client.post(self.want_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_detail_context_reflects_want_state(self):
+        self.client.login(username="groundhopper", password="testpass123")
+        self.client.post(self.want_url)
+        response = self.client.get(self.detail_url)
+        self.assertTrue(response.context["user_wants_to_go"])
+
+    def test_detail_context_false_after_toggle_off(self):
+        self.client.login(username="groundhopper", password="testpass123")
+        self.client.post(self.want_url)
+        self.client.post(self.want_url)
+        response = self.client.get(self.detail_url)
+        self.assertFalse(response.context["user_wants_to_go"])
+
+
+class DeleteVisitViewTests(TestCase):
+    def setUp(self):
+        self.user = make_user()
+        self.other = make_user(username="otherfan")
+        self.ground = make_ground()
+        self.visit = Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        self.delete_url = reverse("grounds:delete_visit", kwargs={"pk": self.visit.pk})
+
+    def test_get_shows_confirmation_page(self):
+        self.client.login(username="groundhopper", password="testpass123")
+        response = self.client.get(self.delete_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.ground.name)
+
+    def test_post_deletes_visit(self):
+        self.client.login(username="groundhopper", password="testpass123")
+        self.client.post(self.delete_url)
+        self.assertFalse(Visit.objects.filter(pk=self.visit.pk).exists())
+
+    def test_post_redirects_to_profile(self):
+        self.client.login(username="groundhopper", password="testpass123")
+        response = self.client.post(self.delete_url)
+        self.assertRedirects(response, reverse("accounts:profile"))
+
+    def test_cannot_delete_another_users_visit(self):
+        self.client.login(username="otherfan", password="testpass123")
+        response = self.client.post(self.delete_url)
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Visit.objects.filter(pk=self.visit.pk).exists())
+
+    def test_unauthenticated_redirects_to_login(self):
+        response = self.client.post(self.delete_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])

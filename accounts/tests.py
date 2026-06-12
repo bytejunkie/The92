@@ -249,3 +249,57 @@ class ProfileViewTests(TestCase):
             reverse("accounts:profile_user", kwargs={"username": "otherfan"})
         )
         self.assertFalse(response.context["is_own_profile"])
+
+
+class ProfileTabTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="groundhopper",
+            email="hop@example.com",
+            birthday=datetime.date(1990, 5, 1),
+            password="S3cur3Pass!",
+        )
+        team = Team.objects.create(
+            name="Test FC",
+            league_level=Team.LeagueLevel.PREMIER_LEAGUE,
+            primary_colour="#FF0000",
+        )
+        self.ground = Ground.objects.create(
+            name="Test Ground", team=team, town_or_city="Testville"
+        )
+        self.profile_url = reverse("accounts:profile")
+        self.client.login(username="groundhopper", password="S3cur3Pass!")
+
+    def test_default_tab_is_visited(self):
+        response = self.client.get(self.profile_url)
+        self.assertEqual(response.context["current_tab"], "visited")
+
+    def test_want_to_go_tab(self):
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.WANT_TO_GO
+        )
+        response = self.client.get(self.profile_url, {"tab": "want-to-go"})
+        self.assertEqual(response.context["current_tab"], "want-to-go")
+        self.assertEqual(len(response.context["want_to_go"]), 1)
+
+    def test_historic_tab(self):
+        Visit.objects.create(
+            user=self.user,
+            ground=self.ground,
+            visit_type=Visit.VisitType.HISTORIC,
+            visited_on="2015-03-14",
+        )
+        response = self.client.get(self.profile_url, {"tab": "historic"})
+        self.assertEqual(response.context["current_tab"], "historic")
+        self.assertEqual(len(response.context["historic"]), 1)
+
+    def test_invalid_tab_falls_back_to_visited(self):
+        response = self.client.get(self.profile_url, {"tab": "nonsense"})
+        self.assertEqual(response.context["current_tab"], "visited")
+
+    def test_want_to_go_not_shown_on_visited_tab(self):
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.WANT_TO_GO
+        )
+        response = self.client.get(self.profile_url, {"tab": "visited"})
+        self.assertEqual(response.context["visited_count"], 0)

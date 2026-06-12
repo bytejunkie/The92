@@ -345,6 +345,59 @@
   cursor: default;
 }
 
+/* Profile tab navigation */
+.tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tab-pill {
+  text-decoration: none;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab-pill:hover {
+  color: var(--color-text);
+}
+
+.tab-pill--active {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.tab-count {
+  opacity: 0.6;
+  font-weight: 600;
+}
+
+/* Wanted (want-to-go active state) button */
+.button-wanted {
+  background: var(--color-gold);
+  color: var(--color-text);
+}
+
+/* Remove pill — destructive but small */
+.pill-remove {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.pill-remove:hover {
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+
 /* Filter bar — ground list search + league filter pills */
 .filter-bar {
   display: flex;

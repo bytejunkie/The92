@@ -77,12 +77,12 @@ def ground_list(request):
 
 def ground_detail(request, slug):
     ground = get_object_or_404(Ground.objects.select_related("team"), slug=slug)
-    user_has_visited = (
-        request.user.is_authenticated
-        and ground.visits.filter(
-            user=request.user, visit_type=Visit.VisitType.VISITED
-        ).exists()
-    )
+    user_has_visited = False
+    user_wants_to_go = False
+    if request.user.is_authenticated:
+        user_visits = ground.visits.filter(user=request.user)
+        user_has_visited = user_visits.filter(visit_type=Visit.VisitType.VISITED).exists()
+        user_wants_to_go = user_visits.filter(visit_type=Visit.VisitType.WANT_TO_GO).exists()
     visit_count = (
         ground.visits.filter(visit_type=Visit.VisitType.VISITED)
         .values("user")
@@ -95,6 +95,7 @@ def ground_detail(request, slug):
         {
             "ground": ground,
             "user_has_visited": user_has_visited,
+            "user_wants_to_go": user_wants_to_go,
             "visit_count": visit_count,
         },
     )
@@ -112,3 +113,31 @@ def claim_ground(request, slug):
         visited_on=date.today(),
     )
     return redirect("grounds:detail", slug=slug)
+
+
+@login_required
+def want_ground(request, slug):
+    if request.method != "POST":
+        return redirect("grounds:detail", slug=slug)
+    ground = get_object_or_404(Ground, slug=slug)
+    existing = Visit.objects.filter(
+        user=request.user, ground=ground, visit_type=Visit.VisitType.WANT_TO_GO
+    ).first()
+    if existing:
+        existing.delete()
+    else:
+        Visit.objects.create(
+            user=request.user,
+            ground=ground,
+            visit_type=Visit.VisitType.WANT_TO_GO,
+        )
+    return redirect("grounds:detail", slug=slug)
+
+
+@login_required
+def delete_visit(request, pk):
+    visit = get_object_or_404(Visit, pk=pk, user=request.user)
+    if request.method == "POST":
+        visit.delete()
+        return redirect("accounts:profile")
+    return render(request, "grounds/visit_confirm_delete.html", {"visit": visit})
