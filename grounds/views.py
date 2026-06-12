@@ -20,9 +20,17 @@ def home(request):
     grounds = Ground.objects.select_related("team").annotate(
         league_order=LEAGUE_ORDER
     ).order_by("league_order", "team__name")[:3]
+    visited_count = 0
+    if request.user.is_authenticated:
+        visited_count = (
+            Visit.objects.filter(user=request.user, visit_type=Visit.VisitType.VISITED)
+            .values("ground")
+            .distinct()
+            .count()
+        )
     context = {
         "grounds": grounds,
-        "visited_count": 57,
+        "visited_count": visited_count,
         "total_count": 92,
         "friends_count": 248,
     }
@@ -50,10 +58,19 @@ def ground_list(request):
             Q(name__icontains=q) | Q(team__name__icontains=q)
         )
 
+    visited_ground_ids = set()
+    if request.user.is_authenticated:
+        visited_ground_ids = set(
+            Visit.objects.filter(
+                user=request.user, visit_type=Visit.VisitType.VISITED
+            ).values_list("ground_id", flat=True).distinct()
+        )
+
     context = {
         "grounds": grounds,
         "current_league": league,
         "current_q": q,
+        "visited_ground_ids": visited_ground_ids,
     }
     return render(request, "grounds/ground_list.html", context)
 

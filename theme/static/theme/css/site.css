@@ -330,6 +330,14 @@
   color: #fff;
 }
 
+/* Visited pill — on ground cards and profile page */
+.pill-visited {
+  background: var(--color-lime);
+  color: var(--color-on-lime);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
 /* Visited state button */
 .button-visited {
   background: var(--color-lime);

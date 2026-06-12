@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile_user.username }} · The 92{% endblock %}
+
+{% block content %}
+  <section class="hero-band ground-hero">
+    <div class="page-shell app-grid">
+      <div class="ground-main-col stack-lg">
+        <div class="stack">
+          <p class="eyebrow">Profile</p>
+          <h1 class="hero-title">{{ profile_user.username }}</h1>
+          {% if profile_user.favourite_team %}
+            <p class="hero-copy">{{ profile_user.favourite_team.name }}</p>
+          {% endif %}
+        </div>
+        {% if is_own_profile %}
+          <div class="actions-row">
+            <a class="button button-secondary" href="#">Edit profile</a>
+          </div>
+        {% endif %}
+      </div>
+
+      <aside class="ground-side-col site-card-raised stack" style="padding: var(--space-6);">
+        <div class="actions-row" style="justify-content: space-between;">
+          <h2 style="margin:0;">Your 92</h2>
+          <span class="pill" style="background: var(--color-pitch); color: #fff;">{{ visited_count }} / {{ total_count }}</span>
+        </div>
+        <div class="stack">
+          <strong class="stat-value">{{ visited_count }} <span class="meta" style="font-size:1rem; font-weight:600;">of {{ total_count }}</span></strong>
+          <div class="progress-dots" aria-label="{{ visited_count }} of {{ total_count }} grounds visited">
+            {% for i in "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" %}
+              <span class="progress-dot {% if forloop.counter <= visited_count %}is-active{% endif %}"></span>
+            {% endfor %}
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="page-shell section-block stack-lg">
+    {% if visited_grounds %}
+      <div class="stack">
+        <h2 class="section-title">Grounds visited</h2>
+        <p class="text-muted">{{ visited_count }} ground{{ visited_count|pluralize }} ticked off.</p>
+      </div>
+      <div class="component-grid">
+        {% for ground in visited_grounds %}
+          <a class="ground-card site-card" href="{{ ground.get_absolute_url }}">
+            <div class="ground-card__pitch pitch-surface" style="border-top: 3px solid {{ ground.team.primary_colour }};"></div>
+            <div class="stack ground-card__body">
+              <div>
+                <h2 class="ground-card__name">{{ ground.name }}</h2>
+                <p class="meta">{{ ground.team.name }} · {{ ground.town_or_city }}</p>
+              </div>
+            </div>
+            <div class="ground-card__footer">
+              <span class="pill league-pill league-pill--{{ ground.team.league_level }}">
+                {{ ground.team.get_league_level_display }}
+              </span>
+              <span class="pill pill-visited">✓ Visited</span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="site-card stack" style="padding: var(--space-8); text-align: center; max-width: 32rem; margin-inline: auto;">
+        <h2>No grounds yet</h2>
+        {% if is_own_profile %}
+          <p class="text-muted">Head to the <a href="{% url 'grounds:list' %}">grounds list</a> and start claiming.</p>
+        {% else %}
+          <p class="text-muted">{{ profile_user.username }} hasn't visited any grounds yet.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

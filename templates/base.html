@@ -20,11 +20,11 @@
           <a href="{% url 'grounds:list' %}">Grounds</a>
           <a href="#">Feed</a>
           <a href="#">Map</a>
-          <a href="#">Profile</a>
+          {% if user.is_authenticated %}<a href="{% url 'accounts:profile' %}">Profile</a>{% else %}<a href="#">Profile</a>{% endif %}
         </div>
         <div class="nav-actions">
           {% if user.is_authenticated %}
-            <span class="pill" style="background: var(--color-surface-muted);">{{ user.username }}</span>
+            <a class="pill" href="{% url 'accounts:profile' %}" style="background: var(--color-surface-muted); text-decoration: none;">{{ user.username }}</a>
           {% else %}
             <a class="button button-secondary" href="{% url 'login' %}">Log in</a>
             <a class="button button-primary" href="{% url 'accounts:register' %}">Join</a>

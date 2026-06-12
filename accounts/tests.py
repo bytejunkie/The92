@@ -3,6 +3,8 @@ import datetime
 from django.test import TestCase
 from django.urls import reverse
 
+from grounds.models import Ground, Team, Visit
+
 from .models import User, validate_username_comedy
 from django.core.exceptions import ValidationError
 
@@ -165,3 +167,85 @@ class LogoutViewTests(TestCase):
         self.client.post("/accounts/logout/")
         response = self.client.get(reverse("grounds:home"))
         self.assertFalse(response.context["user"].is_authenticated)
+
+
+class ProfileViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="groundhopper",
+            email="hop@example.com",
+            birthday=datetime.date(1990, 5, 1),
+            password="S3cur3Pass!",
+        )
+        self.other = User.objects.create_user(
+            username="otherfan",
+            email="other@example.com",
+            birthday=datetime.date(1992, 3, 15),
+            password="S3cur3Pass!",
+        )
+        team = Team.objects.create(
+            name="Test FC",
+            league_level=Team.LeagueLevel.PREMIER_LEAGUE,
+            primary_colour="#FF0000",
+        )
+        self.ground = Ground.objects.create(
+            name="Test Ground", team=team, town_or_city="Testville"
+        )
+
+    def test_own_profile_requires_login(self):
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertRedirects(response, "/accounts/login/")
+
+    def test_own_profile_renders(self):
+        self.client.login(username="groundhopper", password="S3cur3Pass!")
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "groundhopper")
+        self.assertTrue(response.context["is_own_profile"])
+
+    def test_public_profile_accessible_without_login(self):
+        response = self.client.get(
+            reverse("accounts:profile_user", kwargs={"username": "groundhopper"})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "groundhopper")
+
+    def test_public_profile_404_on_unknown_user(self):
+        response = self.client.get(
+            reverse("accounts:profile_user", kwargs={"username": "nobody"})
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_visited_count_reflects_claims(self):
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        self.client.login(username="groundhopper", password="S3cur3Pass!")
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertEqual(response.context["visited_count"], 1)
+
+    def test_repeat_visits_same_ground_counted_once(self):
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        self.client.login(username="groundhopper", password="S3cur3Pass!")
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertEqual(response.context["visited_count"], 1)
+
+    def test_other_users_visits_not_shown(self):
+        Visit.objects.create(
+            user=self.other, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        self.client.login(username="groundhopper", password="S3cur3Pass!")
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertEqual(response.context["visited_count"], 0)
+
+    def test_is_own_profile_false_for_public_view(self):
+        self.client.login(username="groundhopper", password="S3cur3Pass!")
+        response = self.client.get(
+            reverse("accounts:profile_user", kwargs={"username": "otherfan"})
+        )
+        self.assertFalse(response.context["is_own_profile"])

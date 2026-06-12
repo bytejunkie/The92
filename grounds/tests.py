@@ -233,3 +233,62 @@ class ClaimGroundViewTests(TestCase):
         )
         response = self.client.get(self.detail_url)
         self.assertEqual(response.context["visit_count"], 2)
+
+
+class GroundListVisitedStateTests(TestCase):
+    def setUp(self):
+        self.user = make_user()
+        self.ground = make_ground()
+        self.other_ground = make_ground(
+            team=make_team(name="Other FC"), name="Other Ground"
+        )
+        self.list_url = reverse("grounds:list")
+
+    def test_visited_ground_ids_empty_for_anonymous(self):
+        response = self.client.get(self.list_url)
+        self.assertEqual(response.context["visited_ground_ids"], set())
+
+    def test_visited_ground_ids_contains_claimed_ground(self):
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        self.client.login(username="groundhopper", password="testpass123")
+        response = self.client.get(self.list_url)
+        self.assertIn(self.ground.id, response.context["visited_ground_ids"])
+
+    def test_visited_ground_ids_excludes_unvisited(self):
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        self.client.login(username="groundhopper", password="testpass123")
+        response = self.client.get(self.list_url)
+        self.assertNotIn(self.other_ground.id, response.context["visited_ground_ids"])
+
+
+class HomeViewTests(TestCase):
+    def setUp(self):
+        self.user = make_user()
+        self.ground = make_ground()
+
+    def test_visited_count_zero_for_anonymous(self):
+        response = self.client.get(reverse("grounds:home"))
+        self.assertEqual(response.context["visited_count"], 0)
+
+    def test_visited_count_reflects_real_visits(self):
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        self.client.login(username="groundhopper", password="testpass123")
+        response = self.client.get(reverse("grounds:home"))
+        self.assertEqual(response.context["visited_count"], 1)
+
+    def test_repeat_visits_same_ground_count_once(self):
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        Visit.objects.create(
+            user=self.user, ground=self.ground, visit_type=Visit.VisitType.VISITED
+        )
+        self.client.login(username="groundhopper", password="testpass123")
+        response = self.client.get(reverse("grounds:home"))
+        self.assertEqual(response.context["visited_count"], 1)
