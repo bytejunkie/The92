@@ -10,7 +10,7 @@ Last reviewed: 2026-06-29 (after the historical-data + fixtures session).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STATUS SUMMARY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-50 of 53 tickets complete. Phases 1–7 are done; Phase 8 is done bar deployment.
+51 of 54 tickets complete. Phases 1–7 are done; Phase 8 is done bar deployment.
 (T-004 pitch dimensions dropped as out of scope — number intentionally retired.)
 
 Outstanding:
@@ -311,8 +311,8 @@ T-050  [~] Deployment
              runserver autoreloader deadlock), gated on the two env vars,
              console handler always on, timestamps forced to UTC. Verified
              logs reach Better Stack. NOTE: this is server telemetry only;
-             user/domain event logging (e.g. claiming a ground) is a separate
-             future task.
+             user/domain event logging (e.g. claiming a ground) is now done —
+             see T-055.
 
        Host choice — leaning Railway, but not locked in. Whichever host is
        chosen, the logging integration depends on two things:
@@ -340,6 +340,16 @@ T-050  [~] Deployment
        Note when picking the host: confirm it supports an outbound log drain
        to a third party. Railway, Fly.io, and Render all do; if the final
        choice is something else, verify this before committing.
+
+T-055  [x] Domain-event telemetry + admin dashboard
+       Fulfils the T-050 note. New Event model (grounds) records user actions —
+       sign-up, claim, want-to-go, historic visit, follow, matchday check-in —
+       with actor, ground, JSON context and timestamp. A single helper,
+       grounds.telemetry.log_event, writes the row AND emits a structured log
+       line (to Better Stack), and never breaks the action it records. Wired
+       into the six action views. Admin: Event changelist + an "Events dashboard"
+       (admin/grounds/events_dashboard) with all-time + per-type totals and a
+       last-30-days daily activity table. Covered by tests.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

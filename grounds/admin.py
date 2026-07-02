@@ -1,12 +1,15 @@
+from datetime import timedelta
+
 from django.contrib import admin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
+from django.db.models.functions import TruncDate
 from django.shortcuts import render
 from django.urls import path
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import Ground, GroundSuggestion, GroundTip, Match, Team
+from .models import Event, Ground, GroundSuggestion, GroundTip, Match, Team
 
 
 @admin.register(Team)
@@ -160,3 +163,65 @@ def suggestions_dashboard(request):
         "total_pending_tips": pending_tips.count(),
     }
     return render(request, "admin/grounds/suggestions_dashboard.html", context)
+
+
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    list_display = ("event_type", "user", "ground", "created_at")
+    list_filter = ("event_type", "created_at")
+    search_fields = ("user__username", "ground__name")
+    readonly_fields = ("event_type", "user", "ground", "context", "created_at")
+    date_hierarchy = "created_at"
+    ordering = ["-created_at"]
+    change_list_template = "admin/grounds/event_change_list.html"
+
+    def has_add_permission(self, request):
+        return False
+
+    def get_urls(self):
+        urls = [
+            path("dashboard/", staff_member_required(events_dashboard), name="grounds_events_dashboard"),
+        ]
+        return urls + super().get_urls()
+
+
+def events_dashboard(request):
+    types = Event.Type.choices  # [(value, label), ...]
+    type_values = [v for v, _ in types]
+    type_labels = [lbl for _, lbl in types]
+
+    since = timezone.now() - timedelta(days=30)
+    rows = (
+        Event.objects.filter(created_at__gte=since)
+        .annotate(day=TruncDate("created_at"))
+        .values("day", "event_type")
+        .annotate(n=Count("id"))
+    )
+    by_day: dict = {}
+    for r in rows:
+        by_day.setdefault(r["day"], {})[r["event_type"]] = r["n"]
+    daily = [
+        {
+            "day": day,
+            "counts": [by_day[day].get(v, 0) for v in type_values],
+            "total": sum(by_day[day].values()),
+        }
+        for day in sorted(by_day, reverse=True)
+    ]
+
+    totals_all = {
+        r["event_type"]: r["n"]
+        for r in Event.objects.values("event_type").annotate(n=Count("id"))
+    }
+    totals = [{"label": lbl, "value": totals_all.get(val, 0)} for val, lbl in types]
+
+    context = {
+        **admin.site.each_context(request),
+        "title": "Events dashboard",
+        "type_labels": type_labels,
+        "daily": daily,
+        "totals": totals,
+        "grand_total": Event.objects.count(),
+        "last_30_total": sum(d["total"] for d in daily),
+    }
+    return render(request, "admin/grounds/events_dashboard.html", context)

@@ -12,7 +12,8 @@ from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from PIL import Image, ImageDraw, ImageFont
 
-from grounds.models import Ground, Visit
+from grounds.models import Event, Ground, Visit
+from grounds.telemetry import log_event
 
 from .forms import EditProfileForm, RegisterForm
 from .models import Follow
@@ -52,6 +53,7 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            log_event(Event.Type.REGISTER, user=user)
             return redirect("grounds:home")
     else:
         form = RegisterForm()
@@ -171,6 +173,7 @@ def follow_user(request, username):
         existing.delete()
     else:
         Follow.objects.create(follower=request.user, following=target)
+        log_event(Event.Type.FOLLOW, user=request.user, followed=target.username)
     return redirect("accounts:profile_user", username=username)
 
 

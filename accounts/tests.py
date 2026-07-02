@@ -3,7 +3,7 @@ import datetime
 from django.test import TestCase
 from django.urls import reverse
 
-from grounds.models import Ground, Team, Visit
+from grounds.models import Event, Ground, Team, Visit
 
 from .models import Follow, User, validate_username_comedy
 from django.core.exceptions import ValidationError
@@ -82,6 +82,12 @@ class RegisterViewTests(TestCase):
     def test_valid_registration_redirects_to_home(self):
         response = self._post()
         self.assertRedirects(response, reverse("grounds:home"))
+
+    def test_registration_logs_event(self):
+        self._post()
+        events = Event.objects.filter(event_type=Event.Type.REGISTER)
+        self.assertEqual(events.count(), 1)
+        self.assertEqual(events.get().user.username, "NewFan")
 
     def test_profane_username_rejected(self):
         response = self._post(username="twatface")
@@ -360,6 +366,17 @@ class FollowUserViewTests(TestCase):
     def test_follow_creates_relationship(self):
         self.client.post(self.follow_url)
         self.assertTrue(Follow.objects.filter(follower=self.alice, following=self.bob).exists())
+
+    def test_follow_logs_event_with_context(self):
+        self.client.post(self.follow_url)
+        event = Event.objects.get(event_type=Event.Type.FOLLOW)
+        self.assertEqual(event.user, self.alice)
+        self.assertEqual(event.context.get("followed"), "bob")
+
+    def test_unfollow_does_not_log(self):
+        self.client.post(self.follow_url)  # follow
+        self.client.post(self.follow_url)  # unfollow
+        self.assertEqual(Event.objects.filter(event_type=Event.Type.FOLLOW).count(), 1)
 
     def test_follow_redirects_to_profile(self):
         response = self.client.post(self.follow_url)

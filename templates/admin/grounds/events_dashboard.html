@@ -1,0 +1,57 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:grounds_event_changelist' %}">Events</a>
+    &rsaquo; Events dashboard
+  </div>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+  <div style="background:#fff; border:1px solid #ccc; border-radius:6px; padding:16px 24px; min-width:150px;">
+    <div style="font-size:2rem; font-weight:700; line-height:1;">{{ grand_total }}</div>
+    <div style="color:#666;">Events all-time</div>
+  </div>
+  <div style="background:#fff; border:1px solid #ccc; border-radius:6px; padding:16px 24px; min-width:150px;">
+    <div style="font-size:2rem; font-weight:700; line-height:1;">{{ last_30_total }}</div>
+    <div style="color:#666;">Last 30 days</div>
+  </div>
+  {% for t in totals %}
+    <div style="background:#fff; border:1px solid #ccc; border-radius:6px; padding:16px 24px; min-width:120px;">
+      <div style="font-size:1.5rem; font-weight:700; line-height:1;">{{ t.value }}</div>
+      <div style="color:#666; font-size:0.85rem;">{{ t.label }}</div>
+    </div>
+  {% endfor %}
+</div>
+
+<h2>Daily activity — last 30 days</h2>
+{% if daily %}
+  <table style="width:100%; background:#fff; border:1px solid #ccc; border-collapse:collapse;">
+    <thead>
+      <tr style="background:#f5f5f5;">
+        <th style="padding:8px 12px; border-bottom:2px solid #ddd; text-align:left;">Date</th>
+        {% for label in type_labels %}
+          <th style="padding:8px 12px; border-bottom:2px solid #ddd; text-align:right;">{{ label }}</th>
+        {% endfor %}
+        <th style="padding:8px 12px; border-bottom:2px solid #ddd; text-align:right;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in daily %}
+        <tr>
+          <td style="padding:6px 12px; border-bottom:1px solid #eee;">{{ row.day|date:"D j M Y" }}</td>
+          {% for n in row.counts %}
+            <td style="padding:6px 12px; border-bottom:1px solid #eee; text-align:right; {% if not n %}color:#bbb;{% endif %}">{{ n }}</td>
+          {% endfor %}
+          <td style="padding:6px 12px; border-bottom:1px solid #eee; text-align:right; font-weight:700;">{{ row.total }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No events recorded in the last 30 days yet.</p>
+{% endif %}
+{% endblock %}

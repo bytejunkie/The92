@@ -286,3 +286,36 @@ class Visit(models.Model):
 
     def __str__(self):
         return f"{self.user} → {self.ground} ({self.visit_type})"
+
+
+class Event(models.Model):
+    """Lightweight domain-event telemetry (sign-ups, claims, follows, …) for
+    day-by-day monitoring. Written — alongside a structured log line — by
+    grounds.telemetry.log_event. Never blocks the user action it records."""
+
+    class Type(models.TextChoices):
+        REGISTER = "register", "Sign-up"
+        CLAIM = "claim", "Ground claimed"
+        WANT_TO_GO = "want_to_go", "Added to want-to-go"
+        HISTORIC = "historic", "Historic visit logged"
+        FOLLOW = "follow", "Followed a user"
+        CHECKIN = "checkin", "Matchday check-in"
+
+    event_type = models.CharField(max_length=20, choices=Type.choices)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="events",
+    )
+    ground = models.ForeignKey(
+        "Ground", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="events",
+    )
+    context = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["event_type", "created_at"])]
+
+    def __str__(self):
+        return f"{self.get_event_type_display()} · {self.created_at:%Y-%m-%d %H:%M}"

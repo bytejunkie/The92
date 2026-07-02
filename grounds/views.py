@@ -10,7 +10,8 @@ from django.urls import reverse
 from accounts.models import Follow
 from accounts.share import build_share_message
 
-from .models import Ground, GroundSuggestion, GroundTip, Match, Team, Visit
+from .models import Event, Ground, GroundSuggestion, GroundTip, Match, Team, Visit
+from .telemetry import log_event
 
 TOTAL_GROUNDS = 92
 
@@ -244,6 +245,7 @@ def checkin_ground(request, slug):
         visited_on=date.today(),
         match=match,
     )
+    log_event(Event.Type.CHECKIN, user=request.user, ground=ground)
     return redirect(f"{ground.get_absolute_url()}?claimed=1")
 
 
@@ -259,7 +261,7 @@ def add_historic_visit(request, slug):
         match = Match.objects.filter(pk=match_id, ground=ground).select_related("away_team").first()
         if not match:
             return redirect("grounds:historic", slug=slug)
-        Visit.objects.get_or_create(
+        _, created = Visit.objects.get_or_create(
             user=request.user,
             ground=ground,
             match=match,
@@ -268,6 +270,8 @@ def add_historic_visit(request, slug):
                 "visited_on": match.kickoff.date(),
             },
         )
+        if created:
+            log_event(Event.Type.HISTORIC, user=request.user, ground=ground)
         return redirect(f"{ground.get_absolute_url()}?claimed=1")
 
     # GET — build opponent list and match JSON for JS filtering
@@ -323,6 +327,7 @@ def claim_ground(request, slug):
         visit_type=Visit.VisitType.VISITED,
         visited_on=date.today(),
     )
+    log_event(Event.Type.CLAIM, user=request.user, ground=ground)
     return redirect(f"{ground.get_absolute_url()}?claimed=1")
 
 
@@ -342,6 +347,7 @@ def want_ground(request, slug):
             ground=ground,
             visit_type=Visit.VisitType.WANT_TO_GO,
         )
+        log_event(Event.Type.WANT_TO_GO, user=request.user, ground=ground)
     return redirect("grounds:detail", slug=slug)
 
 

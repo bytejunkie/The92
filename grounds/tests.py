@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Ground, Team, Visit
+from .models import Event, Ground, Team, Visit
+from .telemetry import log_event
 
 User = get_user_model()
 
@@ -381,3 +383,46 @@ class DeleteVisitViewTests(TestCase):
         response = self.client.post(self.delete_url)
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login/", response["Location"])
+
+
+class TelemetryTests(TestCase):
+    def setUp(self):
+        self.user = make_user()
+        self.ground = make_ground()
+
+    def test_log_event_creates_row(self):
+        log_event(Event.Type.CLAIM, user=self.user, ground=self.ground, foo="bar")
+        event = Event.objects.get()
+        self.assertEqual(event.event_type, "claim")
+        self.assertEqual(event.user, self.user)
+        self.assertEqual(event.ground, self.ground)
+        self.assertEqual(event.context, {"foo": "bar"})
+
+    def test_log_event_anonymous_user_stored_null(self):
+        log_event(Event.Type.REGISTER, user=AnonymousUser())
+        self.assertIsNone(Event.objects.get().user)
+
+    def test_claim_view_logs_event(self):
+        self.client.force_login(self.user)
+        self.client.post(reverse("grounds:claim", kwargs={"slug": self.ground.slug}))
+        self.assertEqual(Event.objects.filter(event_type=Event.Type.CLAIM).count(), 1)
+
+    def test_want_logs_on_add_only(self):
+        self.client.force_login(self.user)
+        url = reverse("grounds:want", kwargs={"slug": self.ground.slug})
+        self.client.post(url)  # add -> logs
+        self.client.post(url)  # toggle off -> no log
+        self.assertEqual(Event.objects.filter(event_type=Event.Type.WANT_TO_GO).count(), 1)
+
+    def test_checkin_view_logs_event(self):
+        self.client.force_login(self.user)
+        self.client.post(reverse("grounds:checkin", kwargs={"slug": self.ground.slug}))
+        self.assertEqual(Event.objects.filter(event_type=Event.Type.CHECKIN).count(), 1)
+
+    def test_events_dashboard_renders_for_staff(self):
+        log_event(Event.Type.CLAIM, user=self.user, ground=self.ground)
+        staff = make_user(username="staffy", is_staff=True, is_superuser=True)
+        self.client.force_login(staff)
+        response = self.client.get(reverse("admin:grounds_events_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Daily activity")
