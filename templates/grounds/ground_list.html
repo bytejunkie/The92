@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static ground_extras %}
 
 {% block title %}All 92 Grounds · The 92{% endblock %}
 
@@ -114,8 +114,9 @@
             <span class="pill league-pill league-pill--{{ ground.team.league_level }}" style="display:none;">
               {{ ground.team.get_league_level_display }}
             </span>
-            {% if ground.team.logo %}
-              <img src="{{ ground.team.logo.url }}" alt="{{ ground.team.name }}" height="20" style="object-fit:contain;">
+            {% crest_url ground.team as crest %}
+            {% if crest %}
+              <img src="{{ crest }}" alt="{{ ground.team.name }}" height="20" style="object-fit:contain;">
             {% endif %}
             {% if ground.id in today_ground_ids %}
               <span class="pill pill-matchday">Matchday</span>

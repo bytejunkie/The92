@@ -76,11 +76,15 @@ T-003  [x] Add latitude/longitude to Ground model
 T-004  — DROPPED (pitch dimensions). Out of scope; not built, never surfaced in
        the UI. Number retired so existing ticket references stay stable.
 
-T-005  [x] Upload team logos
+T-005  [x] Team crests (committed static assets)
        Club crests sourced from TheSportsDB (searchteams.php, matched by full
-       Team.name to avoid U21/women sides) into Team.logo. All 92 covered, plus
-       most non-92 seed clubs. Command: import_sportsdb_logos.
-       (Templates already render team.logo with a pitch-surface fallback.)
+       Team.name to avoid U21/women sides). Stored as COMMITTED STATIC assets at
+       theme/static/theme/img/crests/<slug>.png — no DB/media coupling, so they
+       deploy with the source and need no per-environment populate step.
+       Resolved in templates via the {% crest_url %} tag (grounds/templatetags/
+       ground_extras.py), mirroring the league logos. All 92 covered plus most
+       non-92 seed clubs. import_sportsdb_logos is a refresh-and-commit tool, not
+       a deploy step. The old Team.logo ImageField was removed (migration 0010).
 
 T-006  [x] Historical teams fixture
        Notable non-92 teams (national sides, Scottish/Welsh clubs) seeded via
@@ -396,8 +400,9 @@ Team colours
   Wikipedia / manually curated.  [implemented] on Team.primary_colour.
 
 Club crests / league logos
-  [implemented] TheSportsDB via import_sportsdb_logos. Team crests (searchteams,
-  matched by full name) -> Team.logo for all 92; four league badges
+  [implemented] TheSportsDB via import_sportsdb_logos. Both are COMMITTED STATIC
+  assets by slug (no DB/media): team crests (searchteams, matched by full name)
+  -> theme/static/theme/img/crests/<slug>.png for all 92; four league badges
   (lookupleague) -> theme/static/theme/img/leagues/<slug>.png.
   NOTE: free key's lookup_all_teams.php ignores the league id (returns a fixed
   24-team sample) — use per-team searchteams instead. Trademarked assets; verify

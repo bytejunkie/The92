@@ -1,12 +1,16 @@
 """
-Import team crests and league logos from TheSportsDB.
+Refresh team crests and league logos from TheSportsDB.
 
-- Team crests -> Team.logo (media/team-logos/<slug>.png). Sourced per league via
-  lookup_all_teams.php (bounded roster, so no fuzzy-search / U21 mismatch).
-- League logos -> theme/static/theme/img/leagues/<slug>.png, replacing the
-  placeholder text-pill SVGs that the ground card/detail templates render.
+Both are committed static assets keyed on slug — NOT media / DB-backed — so they
+deploy with the source and need no per-environment populate step:
+- Team crests -> theme/static/theme/img/crests/<team-slug>.png
+- League logos -> theme/static/theme/img/leagues/<league-slug>.png
 
-Idempotent: skips teams that already have a logo unless --force.
+This is a maintenance/refresh tool: run it locally when you want to update the
+artwork, then commit the PNGs. Templates resolve crests via the {% crest_url %}
+tag (grounds/templatetags/ground_extras.py) and league logos via {% static %}.
+
+Idempotent: skips files that already exist unless --force.
 
 NOTE: club crests and league badges are trademarked. TheSportsDB hosts them, but
 serving them publicly is a licensing question — verify before going live.
@@ -24,7 +28,6 @@ import urllib.request
 from pathlib import Path
 
 from django.conf import settings
-from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 
 from grounds.models import Team
@@ -88,10 +91,15 @@ class Command(BaseCommand):
         # a fixed 24-team sample), so we search per team by full name instead —
         # which disambiguates cleanly (the short name is what pulls in U21 sides).
         self.stdout.write(self.style.MIGRATE_HEADING("Team crests:"))
-        teams = Team.objects.all() if opts["force"] else Team.objects.filter(logo="")
-        done = nobadge = notfound = 0
+        dest = Path(settings.BASE_DIR) / "theme" / "static" / "theme" / "img" / "crests"
+        dest.mkdir(parents=True, exist_ok=True)
+        done = nobadge = notfound = skipped = 0
 
-        for team in teams:
+        for team in Team.objects.all():
+            target = dest / f"{team.slug}.png"
+            if target.exists() and not opts["force"]:
+                skipped += 1
+                continue
             q = urllib.parse.quote(SEARCH_ALIASES.get(team.name, team.name))
             try:
                 data = _get(f"{API}/searchteams.php?t={q}")
@@ -112,12 +120,13 @@ class Command(BaseCommand):
                 nobadge += 1
                 self.stderr.write(f"  {team.name}: download failed ({e})")
                 continue
-            team.logo.save(f"{team.slug}.png", ContentFile(content), save=True)
+            target.write_bytes(content)
             self.stdout.write(f"  + {team.name}")
             done += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f"  crests: {done} saved, {notfound} no match, {nobadge} download failed"
+            f"  crests: {done} saved, {skipped} already present, "
+            f"{notfound} no match, {nobadge} download failed"
         ))
 
     @staticmethod

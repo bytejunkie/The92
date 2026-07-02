@@ -17,7 +17,7 @@ class TeamAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     fieldsets = (
         (None, {"fields": ("name", "slug", "league_level", "is_current_92", "primary_colour")}),
-        ("Assets", {"fields": ("logo", "shirt")}),
+        ("Assets", {"fields": ("shirt",)}),
     )
 
 

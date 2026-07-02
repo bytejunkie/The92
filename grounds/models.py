@@ -24,7 +24,8 @@ class Team(models.Model):
         default=LeagueLevel.OTHER,
     )
     is_current_92 = models.BooleanField(default=False)
-    logo = models.ImageField(upload_to="team-logos/", blank=True)
+    # Crests are committed static assets by slug (theme/img/crests/<slug>.png),
+    # resolved via the {% crest_url %} tag — not a DB/media field.
     shirt = models.ImageField(upload_to="team-shirts/", blank=True)
     primary_colour = models.CharField(max_length=7, default="#19704B")
 

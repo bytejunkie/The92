@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static ground_extras %}
 
 {% block title %}{{ ground.name }} · The 92{% endblock %}
 {% block meta_description %}{{ ground.name }}, home of {{ ground.team.name }} in {{ ground.town_or_city }}. Capacity {{ ground.capacity|floatformat:"0g" }}, opened {{ ground.opened_year }}. Log your visit on The 92.{% endblock %}
@@ -130,14 +130,16 @@
               {% endif %}
             </p>
             <div style="display:flex; align-items:center; gap: var(--space-3); flex-wrap:wrap;">
-              {% if next_match.home_team.logo %}
-                <img src="{{ next_match.home_team.logo.url }}" alt="{{ next_match.home_team.name }}" height="32" style="object-fit:contain; flex-shrink:0;">
+              {% crest_url next_match.home_team as home_crest %}
+              {% if home_crest %}
+                <img src="{{ home_crest }}" alt="{{ next_match.home_team.name }}" height="32" style="object-fit:contain; flex-shrink:0;">
               {% endif %}
               <h2 style="margin:0; font-size:1.125rem;">
                 {{ next_match.home_team.name }} <span style="opacity:0.5;">v</span> {{ next_match.away_team.name }}
               </h2>
-              {% if next_match.away_team.logo %}
-                <img src="{{ next_match.away_team.logo.url }}" alt="{{ next_match.away_team.name }}" height="32" style="object-fit:contain; flex-shrink:0;">
+              {% crest_url next_match.away_team as away_crest %}
+              {% if away_crest %}
+                <img src="{{ away_crest }}" alt="{{ next_match.away_team.name }}" height="32" style="object-fit:contain; flex-shrink:0;">
               {% endif %}
             </div>
             <p class="meta">
@@ -160,8 +162,9 @@
           </div>
         {% else %}
           <div style="display:flex; align-items:center; gap: var(--space-3);">
-            {% if ground.team.logo %}
-              <img src="{{ ground.team.logo.url }}" alt="{{ ground.team.name }}" height="40" style="object-fit:contain; flex-shrink:0;">
+            {% crest_url ground.team as crest %}
+            {% if crest %}
+              <img src="{{ crest }}" alt="{{ ground.team.name }}" height="40" style="object-fit:contain; flex-shrink:0;">
             {% endif %}
             <div>
               <p class="meta">No upcoming fixtures</p>
