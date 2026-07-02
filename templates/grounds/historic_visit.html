@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Log a past visit · {{ ground.name }} · The 92{% endblock %}
+
+{% block content %}
+  <section class="hero-band ground-hero">
+    <div class="page-shell stack">
+      <nav class="breadcrumb" aria-label="breadcrumb">
+        <a href="{% url 'grounds:list' %}">All grounds</a>
+        <span aria-hidden="true">·</span>
+        <a href="{{ ground.get_absolute_url }}">{{ ground.name }}</a>
+        <span aria-hidden="true">·</span>
+        <span>Log past visit</span>
+      </nav>
+      <h1 class="hero-title">Log a past visit</h1>
+      <p class="hero-copy">
+        Pick the game you attended and we'll log the visit.
+      </p>
+    </div>
+  </section>
+
+  <section class="page-shell section-block">
+    <div class="form-card site-card" style="margin: 0 auto;">
+
+      {% if opponents %}
+        <form method="post" action="{% url 'grounds:historic' ground.slug %}" class="stack-lg" id="historic-form">
+          {% csrf_token %}
+          <input type="hidden" name="match_id" id="id_match_id" value="">
+
+          <div class="field-group">
+            <label for="id_opponent">Who were the opponents?</label>
+            <select id="id_opponent" autocomplete="off">
+              <option value="">— Select opponents —</option>
+              {% for team in opponents %}
+                <option value="{{ team.pk }}"{% if team.pk == fave_team_id %} data-fave="1"{% endif %}>
+                  {{ team.name }}{% if team.pk == fave_team_id %} ★{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field-group" id="match-row" style="display:none;">
+            <label for="id_match">Which game?</label>
+            <select id="id_match" autocomplete="off">
+              <option value="">— Select the match —</option>
+            </select>
+          </div>
+
+          <div class="actions-row">
+            <button class="button button-claim" type="submit" id="submit-btn" disabled>Log visit</button>
+            <a class="button button-secondary" href="{{ ground.get_absolute_url }}">Cancel</a>
+          </div>
+        </form>
+
+      {% else %}
+        <div class="stack">
+          <p class="text-muted">
+            No match history for {{ ground.name }} yet — we only have Premier League 2025/26 fixtures so far.
+            More seasons will be added soon.
+          </p>
+          <a class="button button-secondary" href="{{ ground.get_absolute_url }}">Back to ground</a>
+        </div>
+      {% endif %}
+
+    </div>
+  </section>
+
+  {{ matches_data|json_script:"matches-data" }}
+
+  {% if opponents %}
+  <script>
+  (function () {
+    var matchesByOpponent = JSON.parse(document.getElementById('matches-data').textContent);
+    var opponentSel  = document.getElementById('id_opponent');
+    var matchRow     = document.getElementById('match-row');
+    var matchSel     = document.getElementById('id_match');
+    var matchIdInput = document.getElementById('id_match_id');
+    var submitBtn    = document.getElementById('submit-btn');
+
+    opponentSel.addEventListener('change', function () {
+      var tid = opponentSel.value;
+      var matches = matchesByOpponent[tid] || [];
+
+      matchSel.innerHTML = '<option value="">— Select the match —</option>';
+      matchIdInput.value = '';
+      submitBtn.disabled = true;
+
+      if (matches.length) {
+        matches.forEach(function (m) {
+          var opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.label;
+          matchSel.appendChild(opt);
+        });
+        matchRow.style.display = '';
+        if (matches.length === 1) {
+          matchSel.selectedIndex = 1;
+          matchIdInput.value = matchSel.value;
+          submitBtn.disabled = false;
+        }
+      } else {
+        matchRow.style.display = 'none';
+      }
+    });
+
+    matchSel.addEventListener('change', function () {
+      matchIdInput.value = matchSel.value || '';
+      submitBtn.disabled = !matchSel.value;
+    });
+  })();
+  </script>
+  {% endif %}
+{% endblock %}

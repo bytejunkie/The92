@@ -50,7 +50,7 @@
     <div class="tab-nav" role="tablist">
       <a class="pill tab-pill {% if current_tab == 'visited' %}tab-pill--active{% endif %}"
          href="?tab=visited">
-        Visited <span class="tab-count">{{ visited_count }}</span>
+        Grounds <span class="tab-count">{{ visited_count }}</span>
       </a>
       {% if can_see_wishlist %}
         <a class="pill tab-pill {% if current_tab == 'want-to-go' %}tab-pill--active{% endif %}"
@@ -58,10 +58,6 @@
           Want to go <span class="tab-count">{{ want_to_go|length }}</span>
         </a>
       {% endif %}
-      <a class="pill tab-pill {% if current_tab == 'historic' %}tab-pill--active{% endif %}"
-         href="?tab=historic">
-        Historic <span class="tab-count">{{ historic|length }}</span>
-      </a>
     </div>
 
     {% if current_tab == "visited" %}
@@ -75,6 +71,9 @@
                   <div>
                     <h2 class="ground-card__name">{{ ground.name }}</h2>
                     <p class="meta">{{ ground.team.name }} · {{ ground.town_or_city }}</p>
+                    {% if ground.last_visit %}
+                      <p class="meta">{{ ground.last_visit|date:"j M Y" }}</p>
+                    {% endif %}
                   </div>
                 </div>
               </a>
@@ -90,11 +89,11 @@
         </div>
       {% else %}
         <div class="site-card stack" style="padding: var(--space-8); text-align: center; max-width: 32rem; margin-inline: auto;">
-          <h2>No grounds visited yet</h2>
+          <h2>No grounds yet</h2>
           {% if is_own_profile %}
-            <p class="text-muted">Head to the <a href="{% url 'grounds:list' %}">grounds list</a> and start claiming.</p>
+            <p class="text-muted">Head to a ground page and claim your visit, or <a href="{% url 'grounds:list' %}">browse all 92</a>.</p>
           {% else %}
-            <p class="text-muted">{{ profile_user.username }} hasn't visited any grounds yet.</p>
+            <p class="text-muted">{{ profile_user.username }} hasn't logged any visits yet.</p>
           {% endif %}
         </div>
       {% endif %}
@@ -134,40 +133,10 @@
         </div>
       {% endif %}
 
-    {% elif current_tab == "historic" %}
-      {% if historic %}
-        <div class="component-grid">
-          {% for visit in historic %}
-            <div class="ground-card site-card">
-              <a href="{{ visit.ground.get_absolute_url }}" style="display:contents; text-decoration:none; color:inherit;">
-                <div class="ground-card__pitch pitch-surface" style="border-top: 3px solid {{ visit.ground.team.primary_colour }};"></div>
-                <div class="stack ground-card__body">
-                  <div>
-                    <h2 class="ground-card__name">{{ visit.ground.name }}</h2>
-                    <p class="meta">{{ visit.ground.team.name }} · {{ visit.ground.town_or_city }}</p>
-                    {% if visit.visited_on %}<p class="meta">{{ visit.visited_on }}</p>{% endif %}
-                  </div>
-                </div>
-              </a>
-              <div class="ground-card__footer">
-                <span class="pill league-pill league-pill--{{ visit.ground.team.league_level }}">{{ visit.ground.team.get_league_level_display }}</span>
-                {% if is_own_profile %}
-                  <a class="pill pill-remove" href="{% url 'grounds:delete_visit' visit.pk %}" style="margin-left:auto;">Remove</a>
-                {% endif %}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="site-card stack" style="padding: var(--space-8); text-align: center; max-width: 32rem; margin-inline: auto;">
-          <h2>No historic visits</h2>
-          {% if is_own_profile %}
-            <p class="text-muted">You can log grounds you visited before joining — open the ground detail page to add one.</p>
-          {% else %}
-            <p class="text-muted">{{ profile_user.username }} hasn't logged any historic visits.</p>
-          {% endif %}
-        </div>
-      {% endif %}
     {% endif %}
+
+    <div class="actions-row" style="justify-content: center;">
+      {% include "partials/share_buttons.html" with share_url=share_url share_text=share_text image_url=share_card_url button_class="button button-secondary" label=share_label %}
+    </div>
   </section>
 {% endblock %}

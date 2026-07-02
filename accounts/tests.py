@@ -282,16 +282,18 @@ class ProfileTabTests(TestCase):
         self.assertEqual(response.context["current_tab"], "want-to-go")
         self.assertEqual(len(response.context["want_to_go"]), 1)
 
-    def test_historic_tab(self):
+    def test_historic_visit_counts_as_visited(self):
+        # Historic visits are folded into the visited grounds (see _VISITED_TYPES),
+        # not a separate tab, so one should count toward the visited total.
         Visit.objects.create(
             user=self.user,
             ground=self.ground,
             visit_type=Visit.VisitType.HISTORIC,
             visited_on="2015-03-14",
         )
-        response = self.client.get(self.profile_url, {"tab": "historic"})
-        self.assertEqual(response.context["current_tab"], "historic")
-        self.assertEqual(len(response.context["historic"]), 1)
+        response = self.client.get(self.profile_url, {"tab": "visited"})
+        self.assertEqual(response.context["current_tab"], "visited")
+        self.assertEqual(response.context["visited_count"], 1)
 
     def test_invalid_tab_falls_back_to_visited(self):
         response = self.client.get(self.profile_url, {"tab": "nonsense"})
@@ -521,3 +523,120 @@ class WishlistPrivacyTests(TestCase):
         response = self.client.get(self.profile_url, {"tab": "want-to-go"})
         self.assertFalse(response.context["can_see_wishlist"])
         self.assertEqual(response.context["current_tab"], "visited")
+
+
+class LeaderboardViewTests(TestCase):
+    def setUp(self):
+        self.url = reverse("accounts:leaderboard")
+        self.alice = _make_user("alice", "alice@example.com")
+        self.bob = _make_user("bob", "bob@example.com")
+        self.carol = _make_user("carol", "carol@example.com")
+
+    def _visit(self, user, n, prefix, visit_type=Visit.VisitType.VISITED):
+        for i in range(n):
+            ground = _make_ground(name=f"{prefix}{i}", town="Town")
+            Visit.objects.create(user=user, ground=ground, visit_type=visit_type)
+
+    def test_global_ranks_by_visits_desc(self):
+        self._visit(self.alice, 3, "A")
+        self._visit(self.bob, 1, "B")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        players = list(response.context["page_obj"])
+        self.assertEqual(players[0], self.alice)
+        self.assertEqual(players[0].visited, 3)
+        self.assertEqual(players[1], self.bob)
+
+    def test_users_without_visits_excluded(self):
+        self._visit(self.alice, 1, "A")
+        response = self.client.get(self.url)
+        usernames = [p.username for p in response.context["page_obj"]]
+        self.assertIn("alice", usernames)
+        self.assertNotIn("carol", usernames)
+
+    def test_historic_visits_count_toward_score(self):
+        self._visit(self.alice, 2, "H", visit_type=Visit.VisitType.HISTORIC)
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["page_obj"][0].visited, 2)
+
+    def test_want_to_go_does_not_count(self):
+        self._visit(self.alice, 2, "W", visit_type=Visit.VisitType.WANT_TO_GO)
+        response = self.client.get(self.url)
+        self.assertNotIn("alice", [p.username for p in response.context["page_obj"]])
+
+    def test_unauthenticated_can_view(self):
+        self._visit(self.alice, 1, "A")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context["my_rank"])
+
+    def test_my_rank_reported(self):
+        self._visit(self.alice, 2, "A")
+        self._visit(self.bob, 1, "B")
+        self.client.force_login(self.bob)
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["my_rank"], 2)
+        self.assertEqual(response.context["my_visited"], 1)
+
+    def test_friends_scope_limits_to_followed_plus_self(self):
+        self._visit(self.alice, 1, "A")
+        self._visit(self.bob, 1, "B")
+        self._visit(self.carol, 5, "C")  # high score but not followed
+        Follow.objects.create(follower=self.alice, following=self.bob)
+        self.client.force_login(self.alice)
+        response = self.client.get(self.url, {"scope": "friends"})
+        usernames = [p.username for p in response.context["page_obj"]]
+        self.assertIn("alice", usernames)
+        self.assertIn("bob", usernames)
+        self.assertNotIn("carol", usernames)
+
+    def test_friends_scope_falls_back_to_global_when_anonymous(self):
+        response = self.client.get(self.url, {"scope": "friends"})
+        self.assertEqual(response.context["scope"], "global")
+
+
+class SignatureImageTests(TestCase):
+    def setUp(self):
+        self.user = _make_user("siguser", "sig@example.com")
+        self.url = reverse("accounts:signature_image", kwargs={"username": "siguser"})
+
+    def test_returns_png(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertTrue(response.content.startswith(b"\x89PNG"))
+
+    def test_dark_variant_returns_png(self):
+        response = self.client.get(self.url, {"theme": "dark"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+
+    def test_unknown_user_404(self):
+        response = self.client.get(
+            reverse("accounts:signature_image", kwargs={"username": "ghost"})
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_renders_with_team_and_visits(self):
+        team = Team.objects.create(name="Leeds United", primary_colour="#1D428A")
+        self.user.favourite_team = team
+        self.user.save()
+        ground = _make_ground(name="Elland Road", town="Leeds")
+        Visit.objects.create(user=self.user, ground=ground, visit_type=Visit.VisitType.VISITED)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content.startswith(b"\x89PNG"))
+
+
+class ShareForumCodesTests(TestCase):
+    def setUp(self):
+        self.user = _make_user("sharer", "sharer@example.com")
+        self.url = reverse("accounts:share_profile", kwargs={"username": "sharer"})
+
+    def test_share_page_exposes_forum_embed_codes(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("signature.png", response.context["sig_url"])
+        self.assertIn("[img]", response.context["forum_light"]["bbcode"])
+        self.assertIn("<img", response.context["forum_light"]["html"])
+        self.assertIn("theme=dark", response.context["forum_dark"]["bbcode"])

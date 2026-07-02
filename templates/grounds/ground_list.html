@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}All 92 Grounds · The 92{% endblock %}
 
@@ -83,24 +84,42 @@
           <div class="ground-card__pitch pitch-surface" style="border-top: 3px solid {{ ground.team.primary_colour }};">
             {% if ground.image %}
               <img src="{{ ground.image.url }}" alt="{{ ground.name }}" class="ground-card__img">
+            {% elif ground.team.shirt %}
+              <img src="{{ ground.team.shirt.url }}" alt="{{ ground.team.name }} shirt" class="ground-card__img" style="object-fit: contain; padding: var(--space-3);">
             {% endif %}
           </div>
 
           <div class="stack ground-card__body">
-            <div>
-              <h2 class="ground-card__name">{{ ground.name }}</h2>
-              <p class="meta">{{ ground.team.name }} · {{ ground.town_or_city }}</p>
+            <div style="display:flex; align-items:center; gap: var(--space-2);">
+              {% if ground.team.shirt %}
+                <img src="{{ ground.team.shirt.url }}" alt="{{ ground.team.name }} shirt" width="28" height="28" style="object-fit:contain; flex-shrink:0;">
+              {% else %}
+                <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;" aria-hidden="true">
+                  <path d="M8.5 2L4 5l1.5 4L7 8v12h10V8l1.5 1L20 5l-4.5-3-1 1.5a3 3 0 0 1-5 0L8.5 2z"
+                        fill="{{ ground.team.primary_colour }}" stroke="rgba(0,0,0,0.2)" stroke-width="0.6" stroke-linejoin="round"/>
+                </svg>
+              {% endif %}
+              <div>
+                <h2 class="ground-card__name">{{ ground.name }}</h2>
+                <p class="meta">{{ ground.team.name }} · {{ ground.town_or_city }}</p>
+              </div>
             </div>
           </div>
 
           <div class="ground-card__footer">
-            <span class="pill league-pill league-pill--{{ ground.team.league_level }}">
+            <img src="{% static 'theme/img/leagues/'|add:ground.team.league_level|add:'.png' %}"
+                 alt="{{ ground.team.get_league_level_display }}"
+                 height="20"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+            <span class="pill league-pill league-pill--{{ ground.team.league_level }}" style="display:none;">
               {{ ground.team.get_league_level_display }}
             </span>
-            {% if ground.capacity %}
-              <span class="pill" style="background: var(--color-surface-muted);">{{ ground.capacity|floatformat:"0g" }}</span>
+            {% if ground.team.logo %}
+              <img src="{{ ground.team.logo.url }}" alt="{{ ground.team.name }}" height="20" style="object-fit:contain;">
             {% endif %}
-            {% if ground.id in visited_ground_ids %}
+            {% if ground.id in today_ground_ids %}
+              <span class="pill pill-matchday">Matchday</span>
+            {% elif ground.id in visited_ground_ids %}
               <span class="pill pill-visited">✓ Visited</span>
             {% endif %}
           </div>

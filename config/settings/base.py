@@ -1,7 +1,13 @@
+import logging
 import os
+import time
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
@@ -102,6 +108,9 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_FORMS = {"signup": "accounts.forms.SocialSignupForm"}
 
+# Third-party API keys
+FOOTBALL_DATA_API_KEY = os.environ.get("FOOTBALL_DATA_API_KEY", "")
+
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "SCOPE": ["profile", "email"],
@@ -109,3 +118,64 @@ SOCIALACCOUNT_PROVIDERS = {
         "OAUTH_PKCE_ENABLED": True,
     }
 }
+
+# Logging — console always; ship to Better Stack (Logtail) when configured.
+# Set LOGTAIL_SOURCE_TOKEN and LOGTAIL_INGESTING_HOST (both required by
+# Better Stack) via .env locally or as Railway service variables in prod.
+LOGTAIL_SOURCE_TOKEN = os.environ.get("LOGTAIL_SOURCE_TOKEN", "")
+LOGTAIL_INGESTING_HOST = os.environ.get("LOGTAIL_INGESTING_HOST", "")
+DJANGO_LOG_LEVEL = os.environ.get("DJANGO_LOG_LEVEL", "INFO")
+
+# Render all log timestamps in UTC/GMT (not the machine's local time, which
+# is BST in summer) so console and Better Stack line up regardless of host TZ.
+logging.Formatter.converter = time.gmtime
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} UTC {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": DJANGO_LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
+
+if LOGTAIL_SOURCE_TOKEN and LOGTAIL_INGESTING_HOST:
+    _logtail_host = LOGTAIL_INGESTING_HOST
+    if not _logtail_host.startswith("http"):
+        _logtail_host = f"https://{_logtail_host}"
+    # The Logtail handler does network I/O on emit(). Run it behind a
+    # QueueHandler so logging never blocks the request/startup threads — this
+    # keeps logging off the request path in production and avoids a deadlock
+    # with the runserver autoreloader. Python 3.12+ dictConfig creates and
+    # starts the listener thread automatically.
+    LOGGING["handlers"]["betterstack"] = {
+        "class": "logtail.LogtailHandler",
+        "source_token": LOGTAIL_SOURCE_TOKEN,
+        "host": _logtail_host,
+        "formatter": "verbose",
+    }
+    LOGGING["handlers"]["betterstack_queue"] = {
+        "class": "logging.handlers.QueueHandler",
+        "handlers": ["betterstack"],
+    }
+    LOGGING["root"]["handlers"].append("betterstack_queue")
+    LOGGING["loggers"]["django"]["handlers"].append("betterstack_queue")

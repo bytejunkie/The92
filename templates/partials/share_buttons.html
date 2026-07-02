@@ -1,0 +1,15 @@
+{% comment %}
+Usage: {% include "partials/share_buttons.html" with share_url=absolute_url share_text="..." image_url=share_card_url button_class="button button-secondary" label="Share" %}
+image_url is optional — when provided and the device supports the Web Share API with files, the share card image is attached natively instead of just a link.
+{% endcomment %}
+<details class="share-details">
+  <summary class="{{ button_class|default:"button button-secondary" }} js-native-share"
+           data-text="{{ share_text }} {{ share_url }}"
+           {% if image_url %}data-image="{{ image_url }}"{% endif %}>{{ label|default:"Share" }}</summary>
+  <div class="share-menu">
+    <a href="https://wa.me/?text={{ share_text|urlencode }}%20{{ share_url|urlencode }}" target="_blank" rel="noopener">WhatsApp</a>
+    <a href="https://twitter.com/intent/tweet?text={{ share_text|urlencode }}&url={{ share_url|urlencode }}" target="_blank" rel="noopener">X / Twitter</a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url|urlencode }}" target="_blank" rel="noopener">Facebook</a>
+    <button type="button" onclick="navigator.clipboard.writeText('{{ share_url|escapejs }}'); this.textContent='Copied!';">Copy link</button>
+  </div>
+</details>

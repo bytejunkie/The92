@@ -266,6 +266,8 @@
 .actions-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
   gap: var(--space-3);
 }
 
@@ -343,6 +345,30 @@
   background: var(--color-lime);
   color: var(--color-on-lime);
   cursor: default;
+}
+
+/* Matchday check-in button — red, prominent */
+.button-checkin {
+  background: var(--color-red);
+  color: #fff;
+}
+
+.button-checkin:hover {
+  opacity: 0.88;
+}
+
+/* Matchday pill — on ground cards */
+.pill-matchday {
+  background: var(--color-red);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  animation: matchday-pulse 2s ease-in-out infinite;
+}
+
+@keyframes matchday-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 /* Profile tab navigation */
@@ -551,6 +577,107 @@
   gap: var(--space-4);
 }
 
+/* Suggest-an-edit inline forms */
+.suggest-details {
+  margin-top: var(--space-2);
+}
+
+.suggest-details summary.suggest-link {
+  display: inline;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-pitch);
+  list-style: none;
+}
+
+.suggest-details summary.suggest-link::-webkit-details-marker { display: none; }
+
+.suggest-form {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.suggest-textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+}
+
+.suggest-textarea:focus {
+  outline: 2px solid var(--color-pitch);
+  outline-offset: 2px;
+}
+
+/* Share menu */
+.share-details {
+  display: inline-block;
+  position: relative;
+}
+
+.share-details summary {
+  list-style: none;
+}
+
+.share-details summary::-webkit-details-marker { display: none; }
+
+.share-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  display: grid;
+  gap: var(--space-1);
+  min-width: 12rem;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+.share-menu a,
+.share-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.875rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.share-menu a:hover,
+.share-menu button:hover {
+  background: var(--color-surface-muted);
+}
+
+/* Community tip display */
+.tip-body {
+  margin-top: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-card);
+  border-left: 3px solid var(--color-pitch);
+}
+
 /* Avatar row — horizontal stack of circular avatars */
 .avatar-row {
   display: flex;
@@ -562,4 +689,69 @@
   width: 2.5rem;
   height: 2.5rem;
   font-size: 0.75rem;
+}
+
+/* Footer / attribution */
+.site-footer {
+  margin-top: var(--space-16);
+  padding-block: var(--space-6) var(--space-8);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.site-footer .page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.site-footer__brand {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.site-footer__fine {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  opacity: 0.8;
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Leaderboard */
+.leaderboard-you {
+  background: var(--color-surface-muted);
+  font-size: 0.9375rem;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.leaderboard-row--me {
+  outline: 2px solid var(--color-pitch);
+  outline-offset: -2px;
+}
+
+.leaderboard-rank {
+  min-width: 2rem;
+  font-weight: 800;
+  font-size: 1.125rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.leaderboard-score {
+  margin-left: auto;
+  flex-shrink: 0;
 }

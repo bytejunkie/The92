@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile_user.username }}'s 92 · The 92{% endblock %}
+{% block meta_description %}{{ profile_user.username }} has visited {{ visited_count }} of the 92 grounds. Track your own collection on The 92.{% endblock %}
+{% block og_title %}{{ profile_user.username }} has visited {{ visited_count }} of the 92{% endblock %}
+{% block og_description %}Track every ground in the 92. Build your lifetime list and follow the away days your mates are ticking off.{% endblock %}
+{% block og_image %}
+  <meta property="og:image" content="{{ share_card_url }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+
+{% block content %}
+  <section class="page-shell section-block stack-lg">
+    <div class="site-card stack" style="max-width: 40rem; margin-inline: auto; padding: var(--space-8); text-align: center;">
+      <p class="eyebrow">The 92</p>
+      <h1 class="hero-title" style="font-size: 1.75rem;">{{ profile_user.username }}'s collection</h1>
+      <img src="{{ share_card_url }}" alt="{{ profile_user.username }}'s ground collection" style="width:100%; border-radius: var(--radius-card);">
+      <div class="stack">
+        <strong class="stat-value">{{ visited_count }} <span class="meta" style="font-size:1rem; font-weight:600;">of {{ total_count }}</span></strong>
+        {% include "partials/progress_bar.html" with visited_count=visited_count total_count=total_count %}
+      </div>
+      <div class="actions-row" style="justify-content: center;">
+        {% include "partials/share_buttons.html" with share_url=share_url share_text=share_text image_url=share_card_url button_class="button button-primary" label="Share this" %}
+        <a class="button button-secondary" href="{% url 'accounts:profile_user' profile_user.username %}">View full profile</a>
+      </div>
+    </div>
+
+    <div class="site-card stack" style="max-width: 44rem; margin-inline: auto; padding: var(--space-8); gap: var(--space-5);">
+      <div class="stack" style="gap: var(--space-2);">
+        <p class="eyebrow">Forum signature</p>
+        <h2 style="margin:0; font-size:1.25rem;">Add a self-updating badge to your posts</h2>
+        <p class="text-muted" style="margin:0;">Paste one of these into your forum signature. It links back to your 92, and the ground count updates itself as you visit more.</p>
+      </div>
+
+      <img id="sig-preview" src="{{ sig_url }}" data-light="{{ sig_url }}" data-dark="{{ sig_url_dark }}"
+           alt="{{ profile_user.username }}'s forum signature"
+           style="width:100%; border:1px solid var(--color-border); border-radius: var(--radius-card);">
+
+      <div class="actions-row" style="gap: var(--space-2); align-items:center;">
+        <button type="button" class="pill tab-pill tab-pill--active" data-sig-theme="light">Light</button>
+        <button type="button" class="pill tab-pill" data-sig-theme="dark">Dark</button>
+        <a id="sig-download" class="pill" href="{{ sig_url }}" download style="margin-left:auto; text-decoration:none; background: var(--color-surface-muted);">Download PNG ↓</a>
+      </div>
+
+      <div class="stack" style="gap: var(--space-4); text-align:left;">
+        <div class="stack" style="gap: var(--space-2);">
+          <label class="meta" style="font-weight:700;">BBCode <span class="text-muted" style="font-weight:600;">— most forums</span></label>
+          <div style="display:flex; gap: var(--space-2);">
+            <input class="sig-code" readonly value="{{ forum_light.bbcode }}" data-light="{{ forum_light.bbcode }}" data-dark="{{ forum_dark.bbcode }}"
+                   style="flex:1; min-width:0; font-family: ui-monospace, monospace; font-size:0.8125rem; padding: var(--space-3); border:1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface-muted); color: var(--color-text);">
+            <button type="button" class="button button-secondary sig-copy">Copy</button>
+          </div>
+        </div>
+        <div class="stack" style="gap: var(--space-2);">
+          <label class="meta" style="font-weight:700;">HTML <span class="text-muted" style="font-weight:600;">— sites that allow it</span></label>
+          <div style="display:flex; gap: var(--space-2);">
+            <input class="sig-code" readonly value="{{ forum_light.html }}" data-light="{{ forum_light.html }}" data-dark="{{ forum_dark.html }}"
+                   style="flex:1; min-width:0; font-family: ui-monospace, monospace; font-size:0.8125rem; padding: var(--space-3); border:1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface-muted); color: var(--color-text);">
+            <button type="button" class="button button-secondary sig-copy">Copy</button>
+          </div>
+        </div>
+        <div class="stack" style="gap: var(--space-2);">
+          <label class="meta" style="font-weight:700;">Markdown <span class="text-muted" style="font-weight:600;">— Reddit, GitHub</span></label>
+          <div style="display:flex; gap: var(--space-2);">
+            <input class="sig-code" readonly value="{{ forum_light.markdown }}" data-light="{{ forum_light.markdown }}" data-dark="{{ forum_dark.markdown }}"
+                   style="flex:1; min-width:0; font-family: ui-monospace, monospace; font-size:0.8125rem; padding: var(--space-3); border:1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface-muted); color: var(--color-text);">
+            <button type="button" class="button button-secondary sig-copy">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      var pv = document.getElementById("sig-preview");
+      var dl = document.getElementById("sig-download");
+      document.querySelectorAll("[data-sig-theme]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var dark = btn.dataset.sigTheme === "dark";
+          document.querySelectorAll("[data-sig-theme]").forEach(function (b) {
+            b.classList.toggle("tab-pill--active", b === btn);
+          });
+          if (pv) pv.src = dark ? pv.dataset.dark : pv.dataset.light;
+          if (dl) dl.href = dark ? pv.dataset.dark : pv.dataset.light;
+          document.querySelectorAll(".sig-code").forEach(function (inp) {
+            inp.value = dark ? inp.dataset.dark : inp.dataset.light;
+          });
+        });
+      });
+      document.querySelectorAll(".sig-copy").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var inp = btn.parentElement.querySelector(".sig-code");
+          if (!inp) return;
+          inp.select();
+          try {
+            if (navigator.clipboard) navigator.clipboard.writeText(inp.value);
+            else document.execCommand("copy");
+          } catch (e) {
+            try { document.execCommand("copy"); } catch (e2) {}
+          }
+          var label = btn.textContent;
+          btn.textContent = "Copied ✓";
+          setTimeout(function () { btn.textContent = label; }, 1400);
+        });
+      });
+    })();
+  </script>
+{% endblock %}

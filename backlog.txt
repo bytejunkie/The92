@@ -3,45 +3,88 @@ THE 92 — FEATURE BACKLOG
 Ordered by natural build sequence. Each phase depends on the one before it.
 Data must exist before UI, core mechanics before social, social before matchday.
 
+Status: [x] done   [~] partial   [ ] not started
+Last reviewed: 2026-06-29 (after the historical-data + fixtures session).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STATUS SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+50 of 53 tickets complete. Phases 1–7 are done; Phase 8 is done bar deployment.
+(T-004 pitch dimensions dropped as out of scope — number intentionally retired.)
+
+Outstanding:
+  T-002 [~] ground stats — capacity/opened done (92/92); address only 21/92
+  T-050 [~] deployment — app logging done; host/Procfile/Postgres pending
+  T-052 [ ] team shirt images on ground cards
+
+Recommended next: T-050 (deploy), then T-052 (shirts) and the T-002 address gap.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATA PIPELINE — current state (2026-06-29 session)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The Match table now holds real data for all four English tiers — the old
+synthetic League One/Two round-robin fixtures have been removed.
+
+  Historical results : 66,908 matches, 1993-94 → 2025-26 (PL/Champ/L1/L2).
+                       Source: football-data.co.uk free CSVs.
+                       Command: fetch_footballdata → data/football-data/historical_results.csv
+  Next-season fixtures: 2,036 fixtures for 2026-27 (PL 380, Champ/L1/L2 552 each),
+                       status SCHEDULED, matchday = round.
+                       Source: TheSportsDB per-round endpoint (uncapped on free key).
+                       Command: fetch_sportsdb_fixtures → data/sportsdb/fixtures_2026.csv
+  Non-92 result clubs : 16 defunct/relegated clubs seeded as Team + Ground so they
+                       link as opponents (Scunthorpe, Bury, Wimbledon FC, etc.),
+                       is_current_92=False. Command: seed_result_clubs.
+                       Ground stats sourced from Wikidata via import_wiki_stats
+                       (extended this session to also fetch coordinates, P625).
+
+  Import all via:  import_csv_fixtures <csv>  (idempotent natural-key upsert;
+                   carries the reviewed football-data → Team.name alias map).
+  Run order for a fresh DB:
+    seed_historical_teams → seed_result_clubs → import_wiki_stats
+    → import_csv_fixtures data/football-data/historical_results.csv
+    → import_csv_fixtures data/sportsdb/fixtures_2026.csv
+
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 0 — SEED DATA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Nothing works without real clubs, grounds, and stats. Do this first.
 
-T-001  Import all 92 clubs and grounds
+T-001  [x] Import all 92 clubs and grounds
        Import all 92 current Football League / Premier League clubs
        with their ground as a management command or fixture.
        Minimum fields per team: name, slug, league_level, is_current_92=True.
        Minimum fields per ground: name, slug, team, town_or_city, postcode.
        Source: curated CSV built from Wikipedia's "The 92 Club" article.
 
-T-002  Populate ground stats
+T-002  [~] Populate ground stats
        For each ground, add: capacity, opened_year, address.
-       Source: Wikipedia infoboxes (can be partially automated via the
-       Wikipedia API — search "<ground name> football ground").
-       Target fields already exist on the Ground model.
+       Source: Wikipedia infoboxes (automated via import_wiki_stats →
+       Wikipedia REST + Wikidata claims).
+       STATUS: capacity + opened_year done for all 92 and the 16 non-92
+       result clubs. ADDRESS is the gap — only 21/92 (Wikidata P6375 is sparse).
+       To finish: pull addresses from the Football Ground Guide (footymad.net)
+       or curate manually.
 
-T-003  Add latitude/longitude to Ground model
-       Add lat/lng FloatFields (nullable) to Ground for map support later.
-       Geocode each ground postcode using the free Nominatim/OpenStreetMap API
-       via a management command (respect rate limits: 1 req/sec).
-       Migration required.
+T-003  [x] Add latitude/longitude to Ground model
+       lat/lng on Ground (nullable), geocoded from postcode via postcodes.io.
+       (Wikidata P625 coordinates also now backfill the non-92 grounds.)
 
-T-004  Add ground pitch dimensions to Ground model
-       Add length_m and width_m (PositiveIntegerField, nullable).
-       Source: Wikipedia infoboxes. Most top-flight grounds have these.
-       Migration required.
+T-004  — DROPPED (pitch dimensions). Out of scope; not built, never surfaced in
+       the UI. Number retired so existing ticket references stay stable.
 
-T-005  Upload team logos
-       Source club crests from a consistent source (e.g. Wikipedia SVGs or
-       Football-Data.org). Store in media/team-logos/ via the existing
-       Team.logo ImageField.
+T-005  [x] Upload team logos
+       Club crests sourced from TheSportsDB (searchteams.php, matched by full
+       Team.name to avoid U21/women sides) into Team.logo. All 92 covered, plus
+       most non-92 seed clubs. Command: import_sportsdb_logos.
+       (Templates already render team.logo with a pitch-surface fallback.)
 
-T-006  Historical teams fixture
-       Add a small fixture of notable non-92 teams (e.g. national teams,
-       Scottish Premier League clubs) so favourite_team on signup has
-       meaningful options beyond the 92.
+T-006  [x] Historical teams fixture
+       Notable non-92 teams (national sides, Scottish/Welsh clubs) seeded via
+       seed_historical_teams so favourite_team on signup has real options.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -50,39 +93,26 @@ PHASE 1 — GROUND BROWSING
 The core read experience. Users should be able to explore all 92 before
 they create an account.
 
-T-007  Ground list page — full 92
-       Replace the current stub with a real grid of all 92 grounds.
-       Each card shows: ground image (or pitch-surface placeholder),
-       team name, town, capacity, league badge/pill.
-       Use .component-grid for responsive layout.
+T-007  [x] Ground list page — full 92
+       Grid of all 92 grounds; each card shows image/placeholder, team, town,
+       capacity, league pill. Uses .component-grid.
 
-T-008  League filter on ground list
-       Filter the ground list by league level (Premier League, Championship,
-       League One, League Two). Pill-style filter row at the top.
-       Server-rendered with GET params (?league=premier-league).
+T-008  [x] League filter on ground list
+       Pill-style filter row, server-rendered with ?league=premier-league.
 
-T-009  Ground search
-       Simple name/town search field on the ground list page.
-       Server-rendered. Filter Ground.objects on name__icontains or
-       town_or_city__icontains.
+T-009  [x] Ground search
+       Name/town search on the ground list (name/town_or_city icontains).
 
-T-010  Ground detail page — full layout
-       Implement the full ground detail template per the design system spec:
-       - Hero: ground name, team, town, opened year
-       - Stats row: capacity, away allocation, opened year, dimensions
-       - Address and transport block
-       - Away fan guide: parking, pubs/drinking notes, away entrance
-       - First-visit tip block
-       Use the app-grid 12-column layout at desktop.
+T-010  [x] Ground detail page — full layout
+       Hero, stats row, address/transport, away fan guide, first-visit tip.
+       12-column app-grid at desktop.
 
-T-011  Team colour on ground cards and detail page
-       Use Team.primary_colour to tint the pitch-surface placeholder and
-       the league pill on each card. Keep it subtle — border or background
-       tint at low opacity.
+T-011  [x] Team colour on ground cards and detail page
+       Team.primary_colour tints placeholder + league pill (used across
+       home, list, and detail templates).
 
-T-012  Breadcrumb / back navigation
-       Add simple breadcrumb on ground detail: Home → Grounds → [Ground Name].
-       Keeps mobile navigation clear.
+T-012  [x] Breadcrumb / back navigation
+       Home → Grounds → [Ground Name] on ground detail.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -90,40 +120,27 @@ PHASE 2 — COLLECTING MECHANICS (CORE FEATURE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 The heart of the product. Users track which grounds they have visited.
 
-T-013  Visit model
-       New model: Visit(user, ground, visit_type, visited_on, notes).
-       visit_type choices: VISITED, WANT_TO_GO, HISTORIC.
-       visited_on: DateField, nullable (historic visits may lack a precise date).
-       A user can have multiple visits to the same ground (return trips).
-       One WANT_TO_GO per user per ground (enforce via unique_together or clean).
-       Migration required.
+T-013  [x] Visit model
+       Visit(user, ground, visit_type, visited_on, notes); types VISITED /
+       WANT_TO_GO / HISTORIC. Multiple visits per ground allowed.
 
-T-014  Mark ground as visited — UI and view
-       "Claim ground" button on ground detail page (red, primary action).
-       POST to a simple view that creates a Visit(type=VISITED, visited_on=today).
-       Redirect back to the ground detail. Show confirmation state on the button.
+T-014  [x] Mark ground as visited — UI and view
+       "Claim ground" button → creates Visit(VISITED, today).
 
-T-015  Add to want-to-go list — UI and view
-       Secondary action button on ground detail: "Want to go".
-       Creates Visit(type=WANT_TO_GO). Toggle off if already added.
+T-015  [x] Add to want-to-go list — UI and view
+       "Want to go" toggle → Visit(WANT_TO_GO).
 
-T-016  Add historic visit — UI and view
-       Separate form on ground detail: "Add a historic visit" with a date picker.
-       Creates Visit(type=HISTORIC, visited_on=<date>). Allows multiple entries.
+T-016  [x] Add historic visit — UI and view
+       "Add a historic visit" form with date → Visit(HISTORIC).
 
-T-017  Visited state on ground cards and detail
-       If the logged-in user has visited a ground, show a "Visited" pill
-       (pitch/lime colour) on the card and detail page.
-       Use select_related and a prefetched visit queryset for efficiency.
+T-017  [x] Visited state on ground cards and detail
+       "Visited" pill on cards and detail for the logged-in user.
 
-T-018  User visit count
-       Replace the hardcoded visited_count=57 in the home view with a real
-       queryset: Visit.objects.filter(user=request.user, visit_type=VISITED)
-       .values('ground').distinct().count()
+T-018  [x] User visit count
+       Real distinct-ground visited count on the home view.
 
-T-019  Tests for Visit model and collecting views
-       Cover: creating a visit, duplicate WANT_TO_GO prevention,
-       visited state rendering on cards, unauthenticated access redirects.
+T-019  [x] Tests for Visit model and collecting views
+       Covered. 99 test functions across accounts/ and grounds/ test suites.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -131,29 +148,20 @@ PHASE 3 — USER PROFILE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Let users see their own progress and manage their collection.
 
-T-020  Profile page — own profile
-       URL: /profile/ (own) and /profile/<username>/ (public).
-       Show: username, favourite team badge, X/92 visited progress bar,
-       recent visits (last 5), want-to-go list count.
-       Use the profile/list layout from the design system.
+T-020  [x] Profile page — own profile
+       /profile/ and /profile/<username>/ with progress, recent visits.
 
-T-021  Visited grounds list on profile
-       Full paginated list of grounds the user has visited, with date and
-       visit type. Segmented tabs: Visited / Want to Go / Historic.
+T-021  [x] Visited grounds list on profile
+       Paginated list with Visited / Want to Go / Historic tabs.
 
-T-022  Progress bar component
-       Visual X/92 progress bar. Use --color-lime for fill, --color-border
-       for track. Show fraction (e.g. "14 / 92"). Reusable partial.
+T-022  [x] Progress bar component
+       X/92 progress bar partial (lime fill).
 
-T-023  Delete / remove a visit
-       Allow users to remove a visit they added in error.
-       Simple POST action with confirmation (no JS confirm() — use a
-       confirmation page or inline form with a hidden field).
+T-023  [x] Delete / remove a visit
+       POST action with confirmation page.
 
-T-024  Edit profile
-       Allow user to update: username, birthday, favourite_team.
-       Email change should require re-confirmation (future ticket).
-       Separate form from the registration flow.
+T-024  [x] Edit profile
+       Update username, birthday, favourite_team.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -161,34 +169,39 @@ PHASE 4 — SOCIAL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 The social layer turns a personal tracker into a shared experience.
 
-T-025  Follow / friend model
-       New model: Follow(follower, following) with unique_together.
-       Simple asymmetric follow (Twitter-style), not mutual friendship.
-       Migration required.
+T-025  [x] Follow / friend model
+       Follow(follower, following), asymmetric, unique_together.
 
-T-026  Follow / unfollow UI
-       Follow button on public profile pages. POST to follow/unfollow view.
-       Show follower and following counts on profile.
+T-026  [x] Follow / unfollow UI
+       Follow button + counts on public profiles.
 
-T-027  Activity feed
-       /feed/ page showing recent visits from users the logged-in user follows.
-       Each feed item: avatar placeholder, username, ground name, visit type,
-       date. Order by visited_on desc, limit 50.
-       Implement the feed URL stub in the nav.
+T-027  [x] Activity feed
+       /feed/ — recent visits from followed users.
 
-T-028  Friend progress on ground detail
-       On each ground detail page, show a "Friends who've been here" rail:
-       list of avatars (initials placeholder) of followed users who have
-       visited this ground.
+T-028  [x] Friend progress on ground detail
+       "Friends who've been here" rail on ground detail.
 
-T-029  Friends count on home page
-       Replace the hardcoded friends_count=248 with a real count of the
-       logged-in user's follows.
+T-029  [x] Friends count on home page
+       Real follows count.
 
-T-030  Public profile pages
-       Make /profile/<username>/ accessible to non-followers (read-only).
-       Show visited count and recent visits. Hide want-to-go list unless
-       the viewer follows them.
+T-030  [x] Public profile pages
+       /profile/<username>/ read-only for non-followers.
+
+T-053  [x] Leaderboard
+       /accounts/leaderboard/ ranks ground-hoppers by distinct grounds visited
+       (VISITED + HISTORIC), with a global tab and a friends tab (people you
+       follow, plus yourself). Shows the viewer's own rank, tie-break by
+       join date, paginated 25/page. Nav link added. Covered by tests.
+
+T-054  [x] Forum-signature share images (growth)
+       Wide, self-updating banner per user for forum signatures: gold avatar,
+       name/@handle, favourite team, the 92-dot collection grid, live count,
+       site URL + team-colour accent — mirrors the Figma profile module.
+       Pillow-rendered at /profile/<username>/signature.png (+ ?theme=dark),
+       reusing the share_card_image pattern. Share page offers a preview,
+       light/dark toggle, PNG download, and copyable BBCode / HTML / Markdown
+       embed codes that link back to the profile (inbound-traffic loop).
+       Covered by tests.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -196,49 +209,38 @@ PHASE 5 — MAP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Visual exploration of all 92 grounds on a map.
 
-T-031  Map page — all grounds
-       /map/ — render all 92 grounds as pins on a Leaflet.js map
-       (OpenStreetMap tiles, no API key required).
-       Implement the map URL stub in the nav.
-       Requires T-003 (lat/lng on grounds).
+T-031  [x] Map page — all grounds
+       /map/ — Leaflet + OSM tiles, all grounds as pins. (Requires T-003.)
 
-T-032  Map pin states
-       Visited grounds: lime/green pin. Want-to-go: navy pin.
-       Unvisited: grey pin. Only differentiated for logged-in users.
+T-032  [x] Map pin states
+       Visited / want-to-go / unvisited differentiated via circleMarker colours.
 
-T-033  Map popup on pin click
-       Clicking a pin shows a small popup: ground name, team, capacity,
-       visited state, link to ground detail.
+T-033  [x] Map popup on pin click
+       bindPopup with ground name, team, capacity, link to detail.
 
-T-034  Map on ground detail page
-       Small embedded map on the ground detail page showing the ground
-       location. Single pin, no interaction needed beyond zoom.
+T-034  [x] Map on ground detail page
+       Embedded single-pin map on ground detail (#ground-detail-map).
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 6 — MATCHDAY CHECK-IN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Real-time claiming of grounds on matchday — the high-frequency core loop.
+NOTE: now backed by real fixtures/results — see DATA PIPELINE above.
 
-T-035  Match model
-       New model: Match(home_team, away_team, date, competition).
-       Minimal — enough to power the check-in card on ground detail.
-       Feed from a free API (Football-Data.org has a free tier with
-       Premier League + EFL fixtures) or seed manually.
-       Migration required.
+T-035  [x] Match model
+       Match(home_team, away_team, kickoff, competition, status, scores,
+       matchday). Now populated with 66,908 historical results + 2,036
+       2026-27 fixtures across all four tiers.
 
-T-036  Today's fixture on ground detail
-       If a match is scheduled at this ground today (or upcoming weekend),
-       show the fixture card: home v away, competition, kick-off time.
+T-036  [x] Today's fixture on ground detail
+       Ground detail surfaces a scheduled fixture at that ground.
 
-T-037  Matchday check-in
-       "Check in" button on ground detail, only shown when a fixture exists
-       for today. Creates Visit(type=VISITED, visited_on=today, match=match).
-       Red primary button per design system. Sticky bottom action on mobile.
+T-037  [x] Matchday check-in
+       "Check in" view creates Visit(VISITED, today, match=match).
 
-T-038  Matchday state on ground cards
-       Ground cards show a "Live" or "Matchday" pill (red) when a fixture
-       is scheduled for today.
+T-038  [x] Matchday state on ground cards
+       "Matchday" pill (pill-matchday) on cards when a fixture is today.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -246,63 +248,94 @@ PHASE 7 — CONTENT & COMMUNITY QUALITY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Improving the depth and trustworthiness of ground information.
 
-T-039  Community tips on ground detail
-       Allow users to add a short tip (max 280 chars) to any ground's
-       away fan guide (parking, pubs, transport, first visit).
-       Model: GroundTip(user, ground, category, body, created_at).
-       Moderated by staff before showing publicly.
+T-039  [x] Community tips on ground detail
+       GroundTip(user, ground, category, body); staff-moderated; add_tip view.
 
-T-040  Ground info freshness indicator
-       Show when the ground's practical info (parking, drinking, away entrance)
-       was last updated. Flag grounds not updated in 12+ months as "may be outdated".
+T-040  [x] Ground info freshness indicator
+       info_updated_at drives an "Info may be outdated" pill on ground detail.
 
-T-041  Suggest an edit
-       Simple form to suggest corrections to capacity, opened year, or address.
-       Creates a GroundEdit suggestion for staff review. No model change needed
-       until staff approve.
+T-041  [x] Suggest an edit
+       GroundSuggestion + suggest view + staff review dashboard in admin.
 
-T-042  Ground image upload
-       Allow staff to upload a ground photo via the admin.
-       Render on ground detail hero and ground cards (with pitch-surface
-       fallback when no image exists).
+T-042  [x] Ground image upload
+       Staff upload via admin (import_ground_images command + Ground.image),
+       with pitch-surface fallback.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 8 — POLISH & INFRASTRUCTURE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-T-043  Dark mode toggle
-       Persist [data-theme="dark"] in localStorage and apply on page load
-       via a small inline script to avoid flash. Toggle button in the nav.
+T-043  [x] Dark mode toggle
+       [data-theme="dark"] persisted in localStorage, applied pre-paint.
 
-T-044  Pagination on ground list and profile visited list
-       Django Paginator, 24 grounds per page on the list.
-       "Load more" or numbered pages — server-rendered is fine for now.
+T-044  [x] Pagination on ground list and profile visited list
+       Django Paginator, 24 per page.
 
-T-045  Robots.txt and basic SEO meta
-       Add meta description, og:title, og:description to base template.
-       Ground detail pages get ground-specific descriptions.
+T-045  [x] Robots.txt and basic SEO meta
+       meta description + og tags; ground-specific descriptions.
 
-T-046  Error pages
-       Custom 404 and 500 templates styled to match the design system.
+T-046  [x] Error pages
+       Custom 404 / 500 templates.
 
-T-047  Rate limiting on auth views
-       Add django-ratelimit to the login and register views.
-       Reasonable limit: 10 attempts per IP per 10 minutes.
+T-047  [x] Rate limiting on auth views
+       Limit on login/register.
 
-T-048  Environment-based settings split
-       Split settings.py into base.py / local.py / production.py.
-       Move SECRET_KEY and DEBUG to environment variables.
-       Add python-decouple or django-environ.
+T-048  [x] Environment-based settings split
+       settings split into base/local/production; SECRET_KEY + DEBUG from env.
 
-T-049  CI — run tests on push
-       Add a GitHub Actions workflow that runs
-       `uv run python manage.py test` on every push to main.
+T-049  [x] CI — run tests on push
+       GitHub Actions runs the test suite on push.
 
-T-050  Deployment
+T-050  [~] Deployment
        Decide hosting (Railway, Fly.io, and Render all work well with
        Django + SQLite-to-Postgres upgrade). Add Whitenoise for static files.
        Add a Procfile or equivalent.
+
+       Remaining (deploy-time):
+         [ ] Decide host (leaning Railway)
+         [ ] Whitenoise for static files
+         [ ] Procfile / start command (gunicorn)
+         [ ] SQLite -> Postgres upgrade
+         [ ] Set LOGTAIL_SOURCE_TOKEN + LOGTAIL_INGESTING_HOST as host vars
+             (separate Better Stack source from local/dev)
+         [ ] Add platform log drain for startup/crash output (see below)
+
+       Done (app-side logging, the observability slice):
+         [x] Better Stack (Logtail) app logging wired in config/settings/base.py
+             — LogtailHandler behind a QueueHandler (non-blocking, avoids the
+             runserver autoreloader deadlock), gated on the two env vars,
+             console handler always on, timestamps forced to UTC. Verified
+             logs reach Better Stack. NOTE: this is server telemetry only;
+             user/domain event logging (e.g. claiming a ground) is a separate
+             future task.
+
+       Host choice — leaning Railway, but not locked in. Whichever host is
+       chosen, the logging integration depends on two things:
+
+       1. Better Stack env vars. The app ships logs via the in-app
+          LogtailHandler (see config/settings/base.py LOGGING), gated on
+          LOGTAIL_SOURCE_TOKEN + LOGTAIL_INGESTING_HOST. Both must be set as
+          host service/environment variables in production (no .env is
+          deployed). On Railway these are service Variables; the equivalent
+          on Fly.io is `fly secrets set`, on Render the Environment tab.
+
+       2. Startup / crash output. The in-app handler only captures logs that
+          reach Django's logger — it does NOT capture gunicorn boot output,
+          import-time errors, failed migrations, or process crashes, which go
+          to stdout/stderr before Django logging is configured. To capture
+          those, add a platform log drain that forwards stdout/stderr to
+          Better Stack:
+            - Railway: add a Better Stack log drain (Settings > log drains).
+            - Fly.io: configure a log shipper (fly-log-shipper) to Better Stack.
+            - Render: use the Better Stack syslog/HTTP drain.
+          The in-app handler (structured app logs) and the drain (raw
+          startup/crash output) are complementary — set up both for full
+          coverage.
+
+       Note when picking the host: confirm it supports an outbound log drain
+       to a third party. Railway, Fly.io, and Render all do; if the final
+       choice is something else, verify this before committing.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -310,64 +343,69 @@ PHASE 9 — VISUAL IDENTITY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Assets that replace placeholder UI with real football branding.
 
-T-051  Replace league pills with official league logos
-       Swap the text-based league pills (PREMIER LEAGUE, CHAMPIONSHIP, etc.)
-       for the official competition logo wherever league level is displayed —
-       ground cards, ground detail, ground list filter row.
-       Add a LeagueLogo model or static asset map keyed on league_level slug.
-       Source: Premier League, EFL, and league websites publish official
-       brand assets; Wikipedia Commons also has SVG versions. Verify licence
-       before use. Fall back to the current text pill if no logo is available.
+T-051  [x] Replace league pills with official league logos
+       Official competition badges for all four tiers sourced from TheSportsDB
+       (lookupleague.php) as theme/static/theme/img/leagues/<league_level>.png,
+       rendered on ground cards and ground detail. Replaced the placeholder
+       text-pill SVGs. Command: import_sportsdb_logos.
+       LICENCE: league badges are trademarked — verify before going public;
+       reverting to the text pills is just a template extension swap (.png→.svg).
 
-T-052  Team shirt image on ground cards
+T-052  [ ] Team shirt image on ground cards
        Replace the pitch-surface placeholder on ground cards (list page,
        home page preview) with an image of the team's current or recent
-       home shirt. Add a Team.shirt ImageField (upload_to="team-shirts/",
-       blank=True). Render the shirt image inside .ground-card__pitch with
-       object-fit: contain on a light/muted background.
+       home shirt. Team.shirt ImageField already exists (upload_to=
+       "team-shirts/"); no images uploaded yet. Render inside
+       .ground-card__pitch with object-fit: contain on a muted background.
        Source: official club shop images, Wikipedia Commons kit illustrations,
-       or a kit database API (e.g. Football-Data.org kit URLs where available).
-       Pitch-surface texture remains the fallback when no shirt is uploaded.
+       or a kit database API. Pitch-surface texture remains the fallback.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DATA SOURCES REFERENCE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[implemented] markers show what is actually wired up.
 
 Clubs and ground names
   Wikipedia — "List of Football League clubs" and "The 92 Club" articles.
-  Curated CSV is the most reliable starting point; Wikipedia API for bulk stats.
+  [implemented] import_92 / seed commands from a curated CSV.
 
-Capacity and opened year
-  Wikipedia infoboxes per club. API endpoint:
-  https://en.wikipedia.org/api/rest_v1/page/summary/<Club_Name_FC>
-  or use the MediaWiki parse API for full infobox data.
-
-Pitch dimensions
-  Wikipedia infoboxes. Not available for all grounds.
-
-Postcodes and addresses
-  The Football Ground Guide (footymad.net) has every ground address.
-  Alternatively, build from Wikipedia + manual correction.
+Capacity, opened year, address, coordinates
+  Wikipedia REST summary → Wikidata claims (P1083 capacity, P571 inception,
+  P6375 street address, P625 coordinates).
+  [implemented] import_wiki_stats (capacity/opened everywhere; coordinates for
+  non-92 grounds; address sparse — P6375 only ~21/92).
 
 Geocoding (lat/lng from postcode)
-  Nominatim / OpenStreetMap:
-  https://nominatim.openstreetmap.org/search?postalcode=<postcode>&country=GB&format=json
-  Free, no key required, 1 request/second policy.
+  [implemented] postcodes.io via import_latlng (the 92). Wikidata P625 covers
+  the non-92 result grounds.
+
+Historical results (PL / Championship / League One / League Two)
+  [implemented] football-data.co.uk free season CSVs, 1993-94 onward, full
+  seasons for all four tiers. Command: fetch_footballdata.
+  NOTE: TheSportsDB only has L1/L2 from 2012-13, so it is NOT used for results.
+
+Fixtures (upcoming season, all four tiers)
+  [implemented] TheSportsDB per-round endpoint (eventsround.php) — uncapped on
+  the free key; football-data.org and fixturedownload.com cover only PL+Champ.
+  Command: fetch_sportsdb_fixtures.
+  Also available: football-data.org API (PL + Championship) via import_fixtures
+  (FOOTBALL_DATA_API_KEY) for live score/status refresh.
 
 Team colours
-  Wikipedia or manually curated. See also Football Colour API (unofficial).
+  Wikipedia / manually curated.  [implemented] on Team.primary_colour.
 
-Fixtures and results
-  Football-Data.org — free tier covers Premier League + Championship + EFL.
-  Register for a free API key. Python client available.
-  https://www.football-data.org/documentation/quickstart
-
-Club crests / logos
-  Wikipedia Commons has SVG crests for most EFL clubs under free licences.
-  Verify licence per club before use.
+Club crests / league logos
+  [implemented] TheSportsDB via import_sportsdb_logos. Team crests (searchteams,
+  matched by full name) -> Team.logo for all 92; four league badges
+  (lookupleague) -> theme/static/theme/img/leagues/<slug>.png.
+  NOTE: free key's lookup_all_teams.php ignores the league id (returns a fixed
+  24-team sample) — use per-team searchteams instead. Trademarked assets; verify
+  licence before public launch.
+Team shirt images          — NOT YET SOURCED (T-052). Only TheSportsDB has kits
+  (lookupequipment) and coverage is partial / often a few seasons stale.
 
 Away fan information (parking, pubs, transport)
-  The Football Ground Guide (footymad.net) — community-sourced, comprehensive.
-  Can be used for initial seed content with attribution; plan to replace
-  with community contributions over time.
+  The Football Ground Guide (footymad.net) — community-sourced. Also the best
+  remaining source for the T-002 address gap. Attribute; replace over time
+  with community contributions (T-039).

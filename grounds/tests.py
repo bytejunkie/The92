@@ -169,7 +169,8 @@ class ClaimGroundViewTests(TestCase):
     def test_post_creates_visit(self):
         self.client.login(username="groundhopper", password="testpass123")
         response = self.client.post(self.claim_url)
-        self.assertRedirects(response, self.detail_url)
+        # Claim redirects back with ?claimed=1 to trigger the share prompt.
+        self.assertRedirects(response, self.detail_url + "?claimed=1")
         self.assertEqual(
             Visit.objects.filter(
                 user=self.user,

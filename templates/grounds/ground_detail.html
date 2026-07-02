@@ -1,35 +1,76 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ ground.name }} · The 92{% endblock %}
 {% block meta_description %}{{ ground.name }}, home of {{ ground.team.name }} in {{ ground.town_or_city }}. Capacity {{ ground.capacity|floatformat:"0g" }}, opened {{ ground.opened_year }}. Log your visit on The 92.{% endblock %}
 {% block og_title %}{{ ground.name }} · The 92{% endblock %}
 {% block og_description %}{{ ground.name }}, home of {{ ground.team.name }} in {{ ground.town_or_city }}. Capacity {{ ground.capacity|floatformat:"0g" }}.{% endblock %}
 
+{% if ground.latitude and ground.longitude %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'theme/vendor/leaflet/leaflet.css' %}">
+{% endblock %}
+{% endif %}
+
 {% block content %}
   <section class="hero-band ground-hero">
     <div class="page-shell app-grid">
       <div class="ground-main-col stack-lg">
         <div class="stack">
+          {% if show_share_prompt %}
+            <div class="site-card-raised stack" style="padding: var(--space-4) var(--space-5); background: rgb(255 255 255 / 0.12); border: 1px solid rgb(255 255 255 / 0.25);">
+              <div class="actions-row" style="justify-content: space-between; align-items: center;">
+                <p style="margin:0; font-weight: 700;">
+                  🎉 You've now visited {{ user_total_visited }} of the 92 grounds!
+                </p>
+                {% include "partials/share_buttons.html" with share_url=share_url share_text=share_text image_url=share_card_url button_class="button button-primary" label="Share your 92" %}
+              </div>
+            </div>
+          {% endif %}
           <nav class="breadcrumb" aria-label="breadcrumb">
             <a href="{% url 'grounds:list' %}">All grounds</a>
             <span aria-hidden="true">·</span>
-            <span class="pill league-pill league-pill--{{ ground.team.league_level }}" style="font-size:0.75rem;">
+            <img src="{% static 'theme/img/leagues/'|add:ground.team.league_level|add:'.png' %}"
+                 alt="{{ ground.team.get_league_level_display }}"
+                 height="18"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+            <span class="pill league-pill league-pill--{{ ground.team.league_level }}" style="display:none; font-size:0.75rem;">
               {{ ground.team.get_league_level_display }}
             </span>
           </nav>
           <h1 class="hero-title">{{ ground.name }}</h1>
-          <p class="hero-copy">
-            {{ ground.team.name }} · {{ ground.town_or_city }}{% if ground.opened_year %} · Est. {{ ground.opened_year }}{% endif %}
-          </p>
+          <div style="display:flex; align-items:center; gap: var(--space-2);">
+            {% if ground.team.shirt %}
+              <img src="{{ ground.team.shirt.url }}" alt="{{ ground.team.name }} shirt" width="36" height="36" style="object-fit:contain; flex-shrink:0;">
+            {% else %}
+              <svg width="36" height="36" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;" aria-hidden="true">
+                <path d="M8.5 2L4 5l1.5 4L7 8v12h10V8l1.5 1L20 5l-4.5-3-1 1.5a3 3 0 0 1-5 0L8.5 2z"
+                      fill="{{ ground.team.primary_colour }}" stroke="rgb(255 255 255 / 0.35)" stroke-width="0.6" stroke-linejoin="round"/>
+              </svg>
+            {% endif %}
+            <p class="hero-copy" style="margin:0;">
+              {{ ground.team.name }} · {{ ground.town_or_city }}{% if ground.opened_year %} · Est. {{ ground.opened_year }}{% endif %}
+            </p>
+          </div>
         </div>
 
         <div class="actions-row">
           {% if user.is_authenticated %}
             {% if user_has_visited %}
-              <span class="button button-visited">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Visited
-              </span>
+              <div class="stack" style="gap: var(--space-1);">
+                <span class="button button-visited">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Visited
+                </span>
+                {% if user_latest_visit.visited_on %}
+                  <p class="meta" style="color:rgb(235 247 237 / 0.7); font-size:0.75rem;">
+                    {{ user_latest_visit.visited_on|date:"j M Y" }}
+                    {% if user_latest_visit.match and user_latest_visit.match.away_team %}
+                      · vs {{ user_latest_visit.match.away_team.name }}
+                    {% endif %}
+                  </p>
+                {% endif %}
+              </div>
               <form method="post" action="{% url 'grounds:claim' ground.slug %}">
                 {% csrf_token %}
                 <button class="button button-secondary" type="submit">Visit again</button>
@@ -48,6 +89,9 @@
                 <button class="button button-secondary" type="submit">☆ Want to go</button>
               {% endif %}
             </form>
+            <a class="button button-secondary" href="{% url 'grounds:historic' ground.slug %}">
+              {% if user_has_visited %}Log another visit{% else %}Log past visit{% endif %}
+            </a>
           {% else %}
             <a class="button button-claim" href="{% url 'account_login' %}?next={{ request.path }}">Claim ground</a>
             <a class="button button-secondary" href="{% url 'account_login' %}?next={{ request.path }}">Log in to collect</a>
@@ -55,13 +99,77 @@
         </div>
       </div>
 
-      <aside class="ground-side-col site-card-raised stack" style="padding: var(--space-6);">
-        <div class="pitch-surface" style="min-height: 14rem; border-top: 4px solid {{ ground.team.primary_colour }};"></div>
-        <div>
-          <p class="meta">Next fixture</p>
-          <h2 style="margin:0;">{{ ground.team.name }} matchday</h2>
-          <p class="text-muted">Check-in opens near kick-off when fixtures are connected.</p>
+      <aside class="ground-side-col site-card-raised stack" style="padding: var(--space-6); color: var(--color-text);">
+        <div class="pitch-surface" style="min-height: 14rem; border-top: 4px solid {{ ground.team.primary_colour }}; overflow: hidden;">
+          {% if ground.image %}
+            <img src="{{ ground.image.url }}" alt="{{ ground.name }}" style="width:100%; height:100%; object-fit:cover; display:block;">
+          {% endif %}
         </div>
+        {% if user.is_authenticated %}
+          {% if "image" in user_pending_suggestions %}
+            <span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem;">Photo suggestion pending review</span>
+          {% else %}
+            <details class="suggest-details">
+              <summary class="suggest-link">Suggest a better photo</summary>
+              <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="field_name" value="image">
+                <input type="file" name="proposed_image" accept="image/*" required>
+                <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit photo</button>
+              </form>
+            </details>
+          {% endif %}
+        {% endif %}
+        {% if next_match %}
+          <div class="stack">
+            <p class="meta">
+              {% if today_match %}
+                <span style="color: var(--color-red); font-weight: 800;">● Matchday today</span>
+              {% else %}
+                Next fixture · {{ next_match.kickoff|date:"l j M Y" }}
+              {% endif %}
+            </p>
+            <div style="display:flex; align-items:center; gap: var(--space-3); flex-wrap:wrap;">
+              {% if next_match.home_team.logo %}
+                <img src="{{ next_match.home_team.logo.url }}" alt="{{ next_match.home_team.name }}" height="32" style="object-fit:contain; flex-shrink:0;">
+              {% endif %}
+              <h2 style="margin:0; font-size:1.125rem;">
+                {{ next_match.home_team.name }} <span style="opacity:0.5;">v</span> {{ next_match.away_team.name }}
+              </h2>
+              {% if next_match.away_team.logo %}
+                <img src="{{ next_match.away_team.logo.url }}" alt="{{ next_match.away_team.name }}" height="32" style="object-fit:contain; flex-shrink:0;">
+              {% endif %}
+            </div>
+            <p class="meta">
+              {{ next_match.kickoff|date:"g:i A" }} kick-off · {{ next_match.competition_name }}{% if next_match.matchday %} · Matchday {{ next_match.matchday }}{% endif %}
+            </p>
+            {% if today_match and user.is_authenticated and not user_has_visited %}
+              <form method="post" action="{% url 'grounds:checkin' ground.slug %}">
+                {% csrf_token %}
+                <input type="hidden" name="match_id" value="{{ today_match.pk }}">
+                <button class="button button-checkin" type="submit">Check in at {{ ground.name }}</button>
+              </form>
+            {% elif today_match and user.is_authenticated and user_has_visited %}
+              <span class="button button-visited">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Checked in
+              </span>
+            {% elif today_match and not user.is_authenticated %}
+              <a class="button button-checkin" href="{% url 'account_login' %}?next={{ request.path }}">Log in to check in</a>
+            {% endif %}
+          </div>
+        {% else %}
+          <div style="display:flex; align-items:center; gap: var(--space-3);">
+            {% if ground.team.logo %}
+              <img src="{{ ground.team.logo.url }}" alt="{{ ground.team.name }}" height="40" style="object-fit:contain; flex-shrink:0;">
+            {% endif %}
+            <div>
+              <p class="meta">No upcoming fixtures</p>
+              <h2 style="margin:0;">{{ ground.team.name }}</h2>
+              <p class="text-muted">Fixtures will appear here once the next ones are scheduled.</p>
+            </div>
+          </div>
+        {% endif %}
       </aside>
     </div>
   </section>
@@ -77,8 +185,8 @@
         <strong class="stat-value">{{ ground.opened_year|default:"TBC" }}</strong>
       </article>
       <article class="ground-stat site-card">
-        <span class="stat-label">Away allocation</span>
-        <strong class="stat-value">{{ ground.away_allocation|floatformat:"0g"|default:"TBC" }}</strong>
+        <span class="stat-label">Typical away capacity</span>
+        <strong class="stat-value">{{ ground.away_allocation|floatformat:"0g"|default:"Varies" }}</strong>
       </article>
       <article class="ground-stat site-card">
         <span class="stat-label">Visitors</span>
@@ -101,55 +209,234 @@
       </div>
     {% endif %}
 
+    {% if ground.latitude and ground.longitude %}
+    <div id="ground-detail-map" style="height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid var(--color-border);"></div>
+
+    <script src="{% static 'theme/vendor/leaflet/leaflet.js' %}"></script>
+    <script>
+    (function () {
+      var lat = {{ ground.latitude }};
+      var lng = {{ ground.longitude }};
+      var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+      var map = L.map('ground-detail-map', { zoomControl: true, scrollWheelZoom: false })
+        .setView([lat, lng], 15);
+
+      var lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19
+      });
+      var darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19
+      });
+      (isDark ? darkTiles : lightTiles).addTo(map);
+
+      var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+          if (m.attributeName === 'data-theme') {
+            var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (dark) { map.removeLayer(lightTiles); darkTiles.addTo(map); }
+            else      { map.removeLayer(darkTiles);  lightTiles.addTo(map); }
+          }
+        });
+      });
+      observer.observe(document.documentElement, { attributes: true });
+
+      L.circleMarker([lat, lng], {
+        radius: 10,
+        fillColor: '{{ ground.team.primary_colour }}',
+        fillOpacity: 0.9,
+        color: '#fff',
+        weight: 2,
+      }).addTo(map).bindPopup('<strong>{{ ground.name }}</strong>').openPopup();
+    })();
+    </script>
+    {% endif %}
+
     <div class="app-grid">
       <article class="site-card stack-lg ground-main-col" style="padding: var(--space-6);">
-        <h2>Address and essentials</h2>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap: var(--space-3); flex-wrap:wrap;">
+          <h2 style="margin:0;">Address and essentials</h2>
+          {% if ground.info_updated_at %}
+            {% if guide_stale %}
+              <span class="pill" style="background: var(--color-gold); color: var(--color-text); font-size:0.75rem;">⚠ Info may be outdated</span>
+            {% else %}
+              <span class="meta">Updated {{ ground.info_updated_at|date:"M Y" }}</span>
+            {% endif %}
+          {% endif %}
+        </div>
         <div class="info-row">
           <span class="info-dot"></span>
           <div>
             <h3>Address</h3>
-            <p class="text-muted">
-              {% if ground.address %}{{ ground.address }}, {% endif %}{{ ground.postcode }}
-            </p>
+            <p class="text-muted">{% if ground.address %}{{ ground.address }}, {% endif %}{{ ground.postcode }}</p>
+            {% if not ground.address %}
+              {% if user.is_authenticated %}{% if "address" in user_pending_suggestions %}<span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem;">Suggestion pending review</span>{% else %}
+              <details class="suggest-details">
+                <summary class="suggest-link">Suggest the address</summary>
+                <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="field_name" value="address">
+                  <textarea name="proposed_value" class="suggest-textarea" maxlength="500" placeholder="e.g. 123 Example Street" rows="2"></textarea>
+                  <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit suggestion</button>
+                </form>
+              </details>{% endif %}{% endif %}
+            {% endif %}
           </div>
         </div>
+
         <div class="info-row">
           <span class="info-dot" style="background: var(--color-blue);"></span>
           <div>
-            <h3>Transport</h3>
-            <p class="text-muted">{{ ground.transport_notes|default:"Transport notes will be added as the grounds database grows." }}</p>
+            <h3>Getting there</h3>
+            {% if ground.transport_notes %}
+              <p class="text-muted">{{ ground.transport_notes }}</p>
+            {% else %}
+              <p class="text-muted">Transport notes haven't been added yet.</p>
+              {% if user.is_authenticated %}{% if "transport_notes" in user_pending_suggestions %}<span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem;">Suggestion pending review</span>{% else %}
+              <details class="suggest-details">
+                <summary class="suggest-link">Suggest transport info</summary>
+                <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="field_name" value="transport_notes">
+                  <textarea name="proposed_value" class="suggest-textarea" maxlength="500" placeholder="e.g. 10 min walk from the train station, buses 12 and 14 stop outside…" rows="3"></textarea>
+                  <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit suggestion</button>
+                </form>
+              </details>{% endif %}{% endif %}
+            {% endif %}
+            {% for tip in approved_tips %}{% if tip.category == "transport" %}<p class="tip-body">💬 {{ tip.body }} <span class="meta">— {{ tip.user.username }}</span></p>{% endif %}{% endfor %}
           </div>
         </div>
+
         <div class="info-row">
           <span class="info-dot" style="background: var(--color-gold);"></span>
           <div>
             <h3>First visit tip</h3>
-            <p class="text-muted">{{ ground.first_visit_tip|default:"Add a practical first-visit tip for this ground." }}</p>
+            {% if ground.first_visit_tip %}
+              <p class="text-muted">{{ ground.first_visit_tip }}</p>
+            {% else %}
+              <p class="text-muted">No first-visit tip yet.</p>
+              {% if user.is_authenticated %}{% if "first_visit_tip" in user_pending_suggestions %}<span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem;">Suggestion pending review</span>{% else %}
+              <details class="suggest-details">
+                <summary class="suggest-link">Suggest a tip</summary>
+                <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="field_name" value="first_visit_tip">
+                  <textarea name="proposed_value" class="suggest-textarea" maxlength="500" placeholder="e.g. Get there early — the away end fills fast and the sight lines from the back are poor…" rows="3"></textarea>
+                  <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit suggestion</button>
+                </form>
+              </details>{% endif %}{% endif %}
+            {% endif %}
+            {% for tip in approved_tips %}{% if tip.category == "general" %}<p class="tip-body">💬 {{ tip.body }} <span class="meta">— {{ tip.user.username }}</span></p>{% endif %}{% endfor %}
           </div>
         </div>
       </article>
 
       <article class="site-card stack-lg ground-side-col" style="padding: var(--space-6);">
         <h2>Away fans guide</h2>
+
         <div class="info-row">
           <span class="info-dot" style="background: var(--color-navy);"></span>
           <div>
             <h3>Where to park</h3>
-            <p class="text-muted">{{ ground.parking_notes|default:"Parking guidance will be added." }}</p>
+            {% if ground.parking_notes %}
+              <p class="text-muted">{{ ground.parking_notes }}</p>
+            {% else %}
+              <p class="text-muted">Parking guidance hasn't been added yet.</p>
+              {% if user.is_authenticated %}{% if "parking_notes" in user_pending_suggestions %}<span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem;">Suggestion pending review</span>{% else %}
+              <details class="suggest-details">
+                <summary class="suggest-link">Suggest parking info</summary>
+                <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="field_name" value="parking_notes">
+                  <textarea name="proposed_value" class="suggest-textarea" maxlength="500" placeholder="e.g. Street parking on King St is free after 6pm. The Asda car park is £3 and 5 min walk…" rows="3"></textarea>
+                  <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit suggestion</button>
+                </form>
+              </details>{% endif %}{% endif %}
+            {% endif %}
+            {% for tip in approved_tips %}{% if tip.category == "parking" %}<p class="tip-body">💬 {{ tip.body }} <span class="meta">— {{ tip.user.username }}</span></p>{% endif %}{% endfor %}
           </div>
         </div>
+
         <div class="info-row">
           <span class="info-dot" style="background: var(--color-red);"></span>
           <div>
             <h3>Where to drink</h3>
-            <p class="text-muted">{{ ground.drinking_notes|default:"Pub and drinking notes will be added." }}</p>
+            {% if ground.drinking_notes %}
+              <p class="text-muted">{{ ground.drinking_notes }}</p>
+            {% else %}
+              <p class="text-muted">Pub recommendations haven't been added yet.</p>
+              {% if user.is_authenticated %}{% if "drinking_notes" in user_pending_suggestions %}<span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem;">Suggestion pending review</span>{% else %}
+              <details class="suggest-details">
+                <summary class="suggest-link">Suggest a pub</summary>
+                <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="field_name" value="drinking_notes">
+                  <textarea name="proposed_value" class="suggest-textarea" maxlength="500" placeholder="e.g. The White Hart on Broad St is away-friendly and a 10 min walk from the ground…" rows="3"></textarea>
+                  <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit suggestion</button>
+                </form>
+              </details>{% endif %}{% endif %}
+            {% endif %}
+            {% for tip in approved_tips %}{% if tip.category == "pubs" %}<p class="tip-body">💬 {{ tip.body }} <span class="meta">— {{ tip.user.username }}</span></p>{% endif %}{% endfor %}
           </div>
         </div>
+
         <div class="info-row">
           <span class="info-dot"></span>
           <div>
-            <h3>Away entrance</h3>
-            <p class="text-muted">{{ ground.away_entrance|default:"Away entrance guidance will be added." }}</p>
+            <h3>Away end</h3>
+            {% if ground.away_end %}
+              <p class="text-muted">{{ ground.away_end }}</p>
+            {% else %}
+              <p class="text-muted">Which stand away fans are in hasn't been confirmed.</p>
+              {% if user.is_authenticated %}{% if "away_end" in user_pending_suggestions %}<span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem;">Suggestion pending review</span>{% else %}
+              <details class="suggest-details">
+                <summary class="suggest-link">Suggest the away end</summary>
+                <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="field_name" value="away_end">
+                  <textarea name="proposed_value" class="suggest-textarea" maxlength="200" placeholder="e.g. North Stand, lower tier (blocks N1–N6)" rows="2"></textarea>
+                  <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit suggestion</button>
+                </form>
+              </details>{% endif %}{% endif %}
+            {% endif %}
+            {% if ground.away_entrance %}
+              <p class="text-muted" style="margin-top: var(--space-2); font-size: 0.875rem;">Entrance: {{ ground.away_entrance }}</p>
+            {% elif user.is_authenticated %}
+              {% if "away_entrance" in user_pending_suggestions %}<span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem; margin-top:var(--space-2); display:inline-block;">Suggestion pending review</span>{% else %}
+              <details class="suggest-details" style="margin-top: var(--space-2);">
+                <summary class="suggest-link">Suggest the away entrance</summary>
+                <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="field_name" value="away_entrance">
+                  <textarea name="proposed_value" class="suggest-textarea" maxlength="160" placeholder="e.g. Turnstiles 12–16, Family Stand entrance" rows="2"></textarea>
+                  <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit suggestion</button>
+                </form>
+              </details>{% endif %}
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="info-row">
+          <span class="info-dot" style="background: var(--color-lime);"></span>
+          <div>
+            <h3>Away allocation</h3>
+            {% if ground.away_allocation %}
+              <p class="text-muted">~{{ ground.away_allocation|floatformat:"0g" }} tickets</p>
+            {% else %}
+              <p class="text-muted">Typical away allocation hasn't been confirmed.</p>
+              {% if user.is_authenticated %}{% if "away_allocation" in user_pending_suggestions %}<span class="pill" style="background:var(--color-surface-muted); font-size:0.75rem;">Suggestion pending review</span>{% else %}
+              <details class="suggest-details">
+                <summary class="suggest-link">Suggest the away allocation</summary>
+                <form method="post" action="{% url 'grounds:suggest' ground.slug %}" class="suggest-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="field_name" value="away_allocation">
+                  <input type="number" name="proposed_value" class="suggest-textarea" min="0" max="99999" placeholder="e.g. 3000" required>
+                  <button class="button button-secondary" type="submit" style="font-size:0.8125rem;">Submit suggestion</button>
+                </form>
+              </details>{% endif %}{% endif %}
+            {% endif %}
           </div>
         </div>
       </article>

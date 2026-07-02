@@ -6,4 +6,12 @@ __pycache__/
 db.sqlite3
 media/
 
+# Raw third-party CSV cache (re-downloadable; the consolidated
+# data/football-data/historical_results.csv is committed instead)
+data/football-data/raw/
+
 .DS_Store
+
+# Environment variables — never commit real keys
+.env
+.env.local

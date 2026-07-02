@@ -9,6 +9,8 @@
     <meta property="og:title" content="{% block og_title %}The 92 · Track every English football ground{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Track every ground in the 92. Build your lifetime list and follow the away days your mates are ticking off.{% endblock %}">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    {% block og_image %}{% endblock %}
     <script>
       (function () {
         try {
@@ -20,6 +22,7 @@
     <link rel="stylesheet" href="{% static 'theme/css/tokens.css' %}">
     <link rel="stylesheet" href="{% static 'theme/css/layout.css' %}">
     <link rel="stylesheet" href="{% static 'theme/css/site.css' %}">
+    {% block extra_head %}{% endblock %}
   </head>
   <body class="site-body">
     <header class="site-header page-shell">
@@ -31,7 +34,8 @@
         <div class="nav-links">
           <a href="{% url 'grounds:list' %}">Grounds</a>
           <a href="{% url 'accounts:feed' %}">Feed</a>
-          <a href="#">Map</a>
+          <a href="{% url 'accounts:leaderboard' %}">Leaderboard</a>
+          <a href="{% url 'grounds:map' %}">Map</a>
           {% if user.is_authenticated %}<a href="{% url 'accounts:profile' %}">Profile</a>{% else %}<a href="#">Profile</a>{% endif %}
         </div>
         <div class="nav-actions">
@@ -51,6 +55,22 @@
     <main>
       {% block content %}{% endblock %}
     </main>
+    <footer class="site-footer">
+      <div class="page-shell">
+        <p class="site-footer__brand">The 92 — track every English football ground.</p>
+        <p class="site-footer__fine">
+          Club crests and league logos are the trademarks of their respective clubs and
+          competitions, shown here for identification purposes only. This site is not
+          affiliated with any club, the Premier League, or the EFL. Team crests, league
+          badges and fixtures via
+          <a href="https://www.thesportsdb.com" target="_blank" rel="noopener">TheSportsDB</a>;
+          historical results via
+          <a href="https://www.football-data.co.uk" target="_blank" rel="noopener">football-data.co.uk</a>;
+          ground capacities, addresses and coordinates via Wikipedia &amp; Wikidata.
+          With thanks to these community data sources.
+        </p>
+      </div>
+    </footer>
     <script>
       (function () {
         var btn = document.getElementById("theme-toggle");
@@ -68,6 +88,39 @@
           var dark = !isDark();
           applyTheme(dark);
           try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) {}
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        document.addEventListener("click", function (e) {
+          var trigger = e.target.closest(".js-native-share");
+          if (!trigger || !navigator.share) return;
+          e.preventDefault();
+          var details = trigger.closest("details");
+          var text = trigger.dataset.text || "";
+          var imageUrl = trigger.dataset.image;
+
+          function shareTextOnly() {
+            navigator.share({ text: text, title: "The 92" }).catch(function () {});
+          }
+
+          if (imageUrl && navigator.canShare) {
+            fetch(imageUrl)
+              .then(function (r) { return r.blob(); })
+              .then(function (blob) {
+                var file = new File([blob], "the92-share.png", { type: blob.type || "image/png" });
+                if (navigator.canShare({ files: [file] })) {
+                  return navigator.share({ files: [file], text: text, title: "The 92" });
+                }
+                return shareTextOnly();
+              })
+              .catch(function () { shareTextOnly(); });
+          } else {
+            shareTextOnly();
+          }
+
+          if (details) details.open = false;
         });
       })();
     </script>

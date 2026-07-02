@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Map · The 92{% endblock %}
+{% block meta_description %}Explore all 92 English football grounds on a map. See which ones you've visited, which are on your wish list, and discover grounds near you.{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'theme/vendor/leaflet/leaflet.css' %}">
+<style>
+  #ground-map {
+    height: calc(100svh - 5.5rem);
+    width: 100%;
+  }
+  .map-legend {
+    position: absolute;
+    bottom: 2rem;
+    left: 1rem;
+    z-index: 1000;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    padding: 0.75rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+  }
+  .map-legend__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text);
+  }
+  .map-legend__dot {
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.15);
+    flex-shrink: 0;
+  }
+  .map-stats {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .map-stat-chip {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--color-text);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="position: relative;">
+  <div id="ground-map"></div>
+
+  {% if user.is_authenticated %}
+  <div class="map-stats">
+    <span class="map-stat-chip" style="color: #5a9e0a;">✓ {{ visited_count }} visited</span>
+    {% if want_count %}<span class="map-stat-chip" style="color: #c07c00;">★ {{ want_count }} wanted</span>{% endif %}
+    <span class="map-stat-chip" style="color: var(--color-text-muted);">{{ total_count }} grounds</span>
+  </div>
+  {% endif %}
+
+  <div class="map-legend">
+    <div class="map-legend__item">
+      <span class="map-legend__dot" style="background: #84cc16;"></span>
+      Visited
+    </div>
+    <div class="map-legend__item">
+      <span class="map-legend__dot" style="background: #f59e0b;"></span>
+      Want to go
+    </div>
+    <div class="map-legend__item">
+      <span class="map-legend__dot" style="background: #94a3b8;"></span>
+      Not visited
+    </div>
+  </div>
+</div>
+
+{{ grounds_json|json_script:"grounds-data" }}
+
+<script src="{% static 'theme/vendor/leaflet/leaflet.js' %}"></script>
+<script>
+(function () {
+  var grounds = JSON.parse(document.getElementById('grounds-data').textContent);
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  var map = L.map('ground-map', { zoomControl: true }).setView([52.7, -1.7], 6);
+
+  var lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 19
+  });
+
+  var darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 19
+  });
+
+  (isDark ? darkTiles : lightTiles).addTo(map);
+
+  var observer = new MutationObserver(function (mutations) {
+    mutations.forEach(function (m) {
+      if (m.attributeName === 'data-theme') {
+        var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (dark) { map.removeLayer(lightTiles); darkTiles.addTo(map); }
+        else       { map.removeLayer(darkTiles);  lightTiles.addTo(map); }
+      }
+    });
+  });
+  observer.observe(document.documentElement, { attributes: true });
+
+  var COLOR = { visited: '#84cc16', want: '#f59e0b', unvisited: '#94a3b8' };
+
+  grounds.forEach(function (g) {
+    if (!g.lat || !g.lng) return;
+    var color = COLOR[g.status] || COLOR.unvisited;
+    var marker = L.circleMarker([g.lat, g.lng], {
+      radius: 8,
+      fillColor: color,
+      fillOpacity: 0.9,
+      color: '#fff',
+      weight: 2,
+    });
+
+    var statusBadge = '';
+    if (g.status === 'visited') statusBadge = '<div style="margin-top:6px;font-size:0.75rem;font-weight:700;color:#5a9e0a;">✓ Visited</div>';
+    else if (g.status === 'want') statusBadge = '<div style="margin-top:6px;font-size:0.75rem;font-weight:700;color:#c07c00;">★ Want to go</div>';
+
+    var cap = g.capacity ? '<br><span style="font-size:0.8125rem;color:#888;">Capacity ' + g.capacity.toLocaleString() + '</span>' : '';
+
+    marker.bindPopup(
+      '<div style="min-width:160px;">' +
+        '<strong style="font-size:0.9375rem;display:block;margin-bottom:3px;">' + g.name + '</strong>' +
+        '<span style="font-size:0.8125rem;color:#888;">' + g.team + ' &middot; ' + g.league + '</span>' +
+        cap +
+        '<div style="margin-top:8px;"><a href="' + g.url + '" style="font-size:0.8125rem;font-weight:700;color:#19704B;text-decoration:none;">View ground &rarr;</a></div>' +
+        statusBadge +
+      '</div>'
+    );
+    marker.addTo(map);
+  });
+})();
+</script>
+{% endblock %}

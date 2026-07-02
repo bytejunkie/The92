@@ -24,7 +24,12 @@
       <aside class="hero-preview-col hero-panel site-card-raised stack-lg">
         <div class="actions-row" style="justify-content: space-between;">
           <h2>Your 92</h2>
-          <span class="pill" style="background: var(--color-pitch); color: #fff;">{{ visited_count }} / {{ total_count }}</span>
+          <div class="actions-row" style="gap: var(--space-2);">
+            <span class="pill" style="background: var(--color-pitch); color: #fff;">{{ visited_count }} / {{ total_count }}</span>
+            {% if user.is_authenticated %}
+              {% include "partials/share_buttons.html" with share_url=share_url share_text=share_text image_url=share_card_url button_class="button button-secondary" label="Share" %}
+            {% endif %}
+          </div>
         </div>
         <div class="hero-preview-grid">
           <div class="site-card stack" style="padding: var(--space-4);">
@@ -73,7 +78,13 @@
       <div class="component-grid span-9">
         {% for ground in grounds %}
           <a class="ground-card site-card" href="{{ ground.get_absolute_url }}">
-            <div class="ground-card__pitch pitch-surface"></div>
+            <div class="ground-card__pitch pitch-surface" style="border-top: 3px solid {{ ground.team.primary_colour }};">
+              {% if ground.image %}
+                <img src="{{ ground.image.url }}" alt="{{ ground.name }}" class="ground-card__img">
+              {% elif ground.team.shirt %}
+                <img src="{{ ground.team.shirt.url }}" alt="{{ ground.team.name }} shirt" class="ground-card__img" style="object-fit: contain; padding: var(--space-3);">
+              {% endif %}
+            </div>
             <div>
               <h3>{{ ground.name }}</h3>
               <p class="meta">{{ ground.team.name }} · {{ ground.town_or_city }}</p>
@@ -86,4 +97,29 @@
       </div>
     </div>
   </section>
+
+  {% if top_visitors %}
+  <section class="page-shell section-block stack-lg">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-4); flex-wrap:wrap;">
+      <h2 class="section-title">Top ground-hoppers</h2>
+      <a href="{% url 'accounts:leaderboard' %}" style="font-weight:700;">View full leaderboard →</a>
+    </div>
+    <div class="stack leaderboard">
+      {% for player in top_visitors %}
+        <article class="site-card leaderboard-row{% if player.pk == user.pk %} leaderboard-row--me{% endif %}">
+          <span class="leaderboard-rank">{{ forloop.counter }}</span>
+          <a class="avatar" href="{% url 'accounts:profile_user' player.username %}"
+             style="display:grid; place-items:center; background:var(--color-pitch); color:#fff; font-size:0.875rem; font-weight:800; text-decoration:none;">
+            {{ player.username|slice:":2"|upper }}
+          </a>
+          <div class="stack" style="gap:var(--space-1); min-width:0;">
+            <a href="{% url 'accounts:profile_user' player.username %}" style="font-weight:700;">{{ player.username }}</a>
+            <p class="meta" style="margin:0;">{{ player.visited }} / {{ total_count }} grounds</p>
+          </div>
+          <span class="pill pill-visited leaderboard-score">{{ player.visited }}</span>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 {% endblock %}
