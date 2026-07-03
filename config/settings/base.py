@@ -173,20 +173,16 @@ if LOGTAIL_SOURCE_TOKEN and LOGTAIL_INGESTING_HOST:
     _logtail_host = LOGTAIL_INGESTING_HOST
     if not _logtail_host.startswith("http"):
         _logtail_host = f"https://{_logtail_host}"
-    # The Logtail handler does network I/O on emit(). Run it behind a
-    # QueueHandler so logging never blocks the request/startup threads — this
-    # keeps logging off the request path in production and avoids a deadlock
-    # with the runserver autoreloader. Python 3.12+ dictConfig creates and
-    # starts the listener thread automatically.
+    # LogtailHandler already buffers records and uploads them on its own
+    # background flush thread (emit() is non-blocking), so attach it directly.
+    # A previous QueueHandler/QueueListener wrapper was redundant *and* silently
+    # broken: dictConfig builds the listener but does not start its thread, so
+    # records sat in the queue and never reached Better Stack.
     LOGGING["handlers"]["betterstack"] = {
         "class": "logtail.LogtailHandler",
         "source_token": LOGTAIL_SOURCE_TOKEN,
         "host": _logtail_host,
         "formatter": "verbose",
     }
-    LOGGING["handlers"]["betterstack_queue"] = {
-        "class": "logging.handlers.QueueHandler",
-        "handlers": ["betterstack"],
-    }
-    LOGGING["root"]["handlers"].append("betterstack_queue")
-    LOGGING["loggers"]["django"]["handlers"].append("betterstack_queue")
+    LOGGING["root"]["handlers"].append("betterstack")
+    LOGGING["loggers"]["django"]["handlers"].append("betterstack")
