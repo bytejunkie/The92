@@ -15,12 +15,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf import settings
-from accounts.views import RateLimitedLoginView
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 from django.views.static import serve as media_serve
+
+from accounts.views import RateLimitedLoginView
 
 urlpatterns = [
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
@@ -37,5 +38,9 @@ urlpatterns = [
 # and Django's static() helper is a no-op when DEBUG is False, so serve it
 # directly. Fine at our scale; move to object storage (R2/S3) if media grows.
 urlpatterns += [
-    re_path(r"^media/(?P<path>.*)$", media_serve, {"document_root": settings.MEDIA_ROOT}),
+    re_path(
+        r"^media/(?P<path>.*)$",
+        media_serve,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
 ]
