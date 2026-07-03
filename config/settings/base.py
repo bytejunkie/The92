@@ -100,6 +100,12 @@ LOGOUT_REDIRECT_URL = "grounds:home"
 
 SITE_ID = 1
 
+# Canonical domain for this deployment's Site (django.contrib.sites). When set,
+# a post_migrate hook (accounts/signals.py) pins Site(SITE_ID) to it and links
+# social apps on every migrate, so OAuth survives data re-imports. Blank in dev.
+SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "")
+SITE_NAME = os.environ.get("SITE_NAME", "The 92")
+
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
