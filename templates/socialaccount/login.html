@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Sign in with {{ provider.name }} · The 92{% endblock %}
+
+{% block content %}
+  <section class="page-shell section-block">
+    <article class="form-card site-card-raised stack-lg">
+      <div class="stack">
+        <p class="eyebrow">Almost there</p>
+        {% if process == "connect" %}
+          <h1 class="section-title">Connect {{ provider.name }}.</h1>
+          <p class="text-muted">You're about to connect a new {{ provider.name }} account to your profile.</p>
+        {% else %}
+          <h1 class="section-title">Sign in with {{ provider.name }}.</h1>
+          <p class="text-muted">You're about to sign in using your {{ provider.name }} account.</p>
+        {% endif %}
+      </div>
+
+      <form method="post" class="stack-lg">
+        {% csrf_token %}
+        <button class="button button-primary" type="submit">Continue</button>
+      </form>
+    </article>
+  </section>
+{% endblock %}
