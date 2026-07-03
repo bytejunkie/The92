@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.ruff_cache
+__pycache__
+*.py[cod]
+db.sqlite3
+media
+staticfiles
+.env
+.env.local
+.DS_Store
+data/football-data/raw

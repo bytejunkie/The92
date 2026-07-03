@@ -5,6 +5,7 @@ __pycache__/
 
 db.sqlite3
 media/
+staticfiles/
 
 # Raw third-party CSV cache (re-downloadable; the consolidated
 # data/football-data/historical_results.csv is committed instead)

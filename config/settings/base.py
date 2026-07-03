@@ -36,6 +36,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # WhiteNoise serves static files in production; harmless in dev where the
+    # staticfiles app handles them. Must sit directly after SecurityMiddleware.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -87,7 +90,9 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "theme" / "static"]
 
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# In production point DJANGO_MEDIA_ROOT at a persistent Railway volume mount so
+# user uploads survive redeploys (the container filesystem is ephemeral).
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
 
 AUTH_USER_MODEL = "accounts.User"
 LOGIN_REDIRECT_URL = "grounds:home"
